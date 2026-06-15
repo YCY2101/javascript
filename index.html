@@ -18,6 +18,7 @@
       <button id="startVocabBtn" class="start-action-btn" onclick="openVocabularyBook()">📘 單字本</button>
       <button id="startShopBtn" class="start-action-btn" onclick="openShop()">🛍️ 商店</button>
       <button id="startInventoryBtn" class="start-action-btn" onclick="openInventory()">🎒 背包</button>
+      <button id="startLeaderboardBtn" class="start-action-btn" onclick="openLeaderboard()">🏆 排行榜</button>
     </div>
 
     <h1>🎣 Fishing Typing Game</h1>
@@ -27,6 +28,7 @@
       <button class="difficulty-btn" onclick="startGame('easy')">簡單</button>
       <button class="difficulty-btn" onclick="startGame('normal')">中等</button>
       <button class="difficulty-btn" onclick="startGame('hard')">困難</button>
+      <button class="difficulty-btn" onclick="startGame('infinite')">無限</button>
     </div>
   </div>
 
@@ -42,27 +44,14 @@
 
     <!-- 📊 遊戲信息 -->
     <div id="info">
-      Score: <span id="score">0</span> |
-      Time: <span id="time">60</span>s |
-      Combo: <span id="combo">0</span>
+      <span>Score: <span id="score">0</span> |</span>
+      <span><span id="timeLabel">Time</span>: <span id="time">60</span><span id="timeSuffix">s</span> |</span>
+      <span>Combo: <span id="combo">0</span></span>
+      <button id="inventoryBtn" class="small-btn" onclick="openInventory()">🎒 背包</button>
     </div>
 
     <!-- ⌨️ 輸入顯示 -->
     <div id="input"></div>
-
-    <!-- ⏸️ 暫停按鈕 -->
-    <button id="pauseBtn" onclick="pauseGame()">⏸️ 暫停</button>
-  </div>
-
-  <!-- ⏸️ 暫停視窗 -->
-  <div id="pauseModal" class="modal-screen" style="display: none;">
-    <div class="modal-card small-card">
-      <h2>⏸️ 遊戲暫停</h2>
-      <div class="modal-actions">
-        <button class="primary-btn" onclick="resumeGame()">繼續遊戲</button>
-        <button class="secondary-btn" onclick="restartGame()">回到首頁</button>
-      </div>
-    </div>
   </div>
 
   <!-- 🧾 遊戲結束視窗 -->
@@ -72,9 +61,59 @@
       <p>💯 最終分數：<span id="finalScore">0</span></p>
       <p>💵 目前餘額：<span id="finalMoney">0</span></p>
       <p>📘 本局單字數：<span id="finalWordCount">0</span></p>
+
+      <div class="score-submit-box">
+        <label for="playerNameInput">玩家名稱</label>
+        <div class="score-submit-row">
+          <input id="playerNameInput" type="text" maxlength="20" placeholder="輸入名字登上排行榜">
+          <button id="submitScoreBtn" class="primary-btn" onclick="submitScore()">登記分數</button>
+          <button id="skipScoreBtn" class="secondary-btn" onclick="skipScoreRegistration()">跳過</button>
+        </div>
+        <p id="leaderboardStatus" class="muted-text"></p>
+      </div>
+
+      <div id="gameOverLeaderboardPreview" class="leaderboard-preview"></div>
+
       <div class="modal-actions">
-        <button class="primary-btn" onclick="openVocabularyBook(gameState.lastRoundId)">開啟本局單字本</button>
-        <button class="secondary-btn" onclick="restartGame()">回到首頁</button>
+        <button class="primary-btn" onclick="openLeaderboard()">查看排行榜</button>
+        <button class="secondary-btn" onclick="skipScoreRegistration()">跳過並回到首頁</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 🏆 排行榜視窗 -->
+  <div id="leaderboardModal" class="modal-screen" style="display: none;">
+    <div class="modal-card leaderboard-card">
+      <div class="modal-header">
+        <div>
+          <h2>🏆 線上排行榜</h2>
+          <p class="muted-text">登記分數後，可以跟其他玩家比較排名。</p>
+        </div>
+        <button class="close-btn" onclick="closeLeaderboard()">✕</button>
+      </div>
+
+      <div id="leaderboardNotice" class="leaderboard-notice"></div>
+      <div id="leaderboardLoading" class="empty-state" style="display: none;">排行榜讀取中...</div>
+      <div id="leaderboardEmpty" class="empty-state" style="display: none;">目前還沒有分數，先搶第一名。</div>
+
+      <div class="table-scroll">
+        <table class="leaderboard-table">
+          <thead>
+            <tr>
+              <th>名次</th>
+              <th>玩家</th>
+              <th>分數</th>
+              <th>難度</th>
+              <th>時間</th>
+            </tr>
+          </thead>
+          <tbody id="leaderboardTableBody"></tbody>
+        </table>
+      </div>
+
+      <div class="modal-actions bottom-actions">
+        <button class="secondary-btn" onclick="loadLeaderboard()">重新整理</button>
+        <button class="secondary-btn" onclick="closeLeaderboard()">關閉</button>
       </div>
     </div>
   </div>
@@ -85,7 +124,7 @@
       <div class="modal-header">
         <div>
           <h2>📘 單字本</h2>
-          <p class="muted-text">會儲存每一局打中的單字，並提供 JavaScript 相關解釋。</p>
+          <p class="muted-text">會儲存每一局打中的單字，並提供劍橋繁中辭典查詢。</p>
         </div>
         <button class="close-btn" onclick="closeVocabularyBook()">✕</button>
       </div>
@@ -113,7 +152,7 @@
                   <tr>
                     <th>單字</th>
                     <th>次數</th>
-                    <th>JS 解釋</th>
+                    <th>劍橋辭典</th>
                   </tr>
                 </thead>
                 <tbody id="vocabTableBody"></tbody>
@@ -130,26 +169,6 @@
     </div>
   </div>
 
-  <!-- 🎒 背包螢幕 -->
-  <div id="inventoryModal" class="modal-screen" style="display: none;">
-    <div class="modal-card vocab-card">
-      <div class="modal-header">
-        <div>
-          <h2>🎒 背包</h2>
-          <p class="muted-text">顯示你在商店購買的物品，按類別分類。</p>
-        </div>
-        <div id="inventoryCount" style="font-size: 18px; font-weight: 700; color: #ffffff;">0 件</div>
-        <button class="close-btn" onclick="closeInventory()">✕</button>
-      </div>
-      <div id="inventoryContent" class="inventory-content" style="background: rgba(255,255,255,0.06); padding: 16px; border-radius: 14px;">
-        <div class="inventory-empty">目前尚未購買任何物品，快去商店挑選吧！</div>
-      </div>
-      <div class="modal-actions">
-        <button class="secondary-btn" onclick="closeInventory()">關閉</button>
-      </div>
-    </div>
-  </div>
-
   <!-- 🛍️ 商店螢幕 -->
   <div id="shopModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.8); z-index: 1000; overflow-y: auto;">
     <div style="max-width: 900px; margin: 20px auto; background: white; border-radius: 10px; padding: 30px;">
@@ -162,10 +181,28 @@
     </div>
   </div>
 
+  <!-- 🎒 背包視窗 -->
+  <div id="inventoryModal" class="modal-screen" style="display: none;">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div>
+          <h2>🎒 背包</h2>
+          <p class="muted-text">查看目前擁有的釣竿與服裝。</p>
+        </div>
+        <button class="close-btn" onclick="closeInventory()">✕</button>
+      </div>
+      <div id="inventoryContent"></div>
+      <div class="modal-actions bottom-actions">
+        <button class="secondary-btn" onclick="closeInventory()">關閉</button>
+      </div>
+    </div>
+  </div>
+
   <!-- 🔊 音效 -->
   <audio id="hitSound" src="https://www.soundjay.com/button/beep-07.wav"></audio>
 
   <!-- 📜 腳本 -->
   <script src="script.js"></script>
+  <script src="leaderboard.js"></script>
 </body>
 </html>
