@@ -421,6 +421,8 @@ function renderInventoryItems() {
 }
 
 function openInventory(category) {
+  ensureDefaultInventory();
+
   const inventoryModal = document.getElementById('inventoryModal');
   const categories = getInventoryCategories();
 
@@ -900,6 +902,7 @@ function startGame(difficultyLevel = 'easy') {
   CONFIG.MAX_FISH = currentDifficulty.initialMaxFish;
 
   // 重新初始化遊戲狀態（從 localStorage 讀取金錢）
+  ensureDefaultInventory();
   gameState.isRunning = true;
   gameState.mode = difficultyLevel === 'infinite' ? 'infinite' : 'timed';
   gameState.timeLeft = gameState.mode === 'timed' ? 60 : 0;
@@ -993,6 +996,8 @@ function resumeGame() {
 }
 
 function openShop(category) {
+  ensureDefaultInventory();
+
   const shopModal = document.getElementById('shopModal');
   const shopMoney = document.getElementById('shopMoney');
 
