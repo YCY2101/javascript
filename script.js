@@ -95,7 +95,7 @@ const shopItems = [
   { id: 'rod6', name: '幸運釣竿', category: '釣竿', price: 360, image: '幸運釣竿.png' },
   
   // 人物幫手
-  { id: 'char1', name: '魚夫助手', category: '人物', price: 160, image: '魚夫.png' },
+  { id: 'char1', name: '魚夫', category: '人物', price: 160, image: '魚夫.png' },
 ];
 
 // ==========================================
@@ -273,6 +273,7 @@ function checkGameOver() {
  * 打開背包視窗
  */
 let currentInventoryCategory = '釣竿';
+let currentShopCategory = '釣竿';
 const inventoryCategoryOrder = ['釣竿', '人物'];
 
 function getInventoryCategories() {
@@ -281,6 +282,69 @@ function getInventoryCategories() {
     const bIndex = inventoryCategoryOrder.indexOf(b);
     if (aIndex !== -1 || bIndex !== -1) return aIndex - bIndex;
     return a.localeCompare(b);
+  });
+}
+
+function ensureDefaultInventory() {
+  const ownedItems = new Set(StorageManager.getOwnedItems());
+  const equippedItems = StorageManager.getEquippedItems();
+
+  if (!ownedItems.has('rod1')) ownedItems.add('rod1');
+  if (!ownedItems.has('char0')) ownedItems.add('char0');
+
+  if (!equippedItems['釣竿']) equippedItems['釣竿'] = 'rod1';
+  if (!equippedItems['人物']) equippedItems['人物'] = 'char0';
+
+  StorageManager.setOwnedItems(Array.from(ownedItems));
+  StorageManager.setEquippedItems(equippedItems);
+}
+
+function renderShopTabs() {
+  const categories = getInventoryCategories();
+  const tabsContainer = document.getElementById('shopTabs');
+  if (!tabsContainer) return;
+
+  tabsContainer.innerHTML = categories.map(category => {
+    const activeClass = category === currentShopCategory ? 'active' : '';
+    return `<button class="inventory-tab-btn ${activeClass}" onclick="openShop('${category}')">${category}</button>`;
+  }).join('');
+}
+
+function renderShopItems() {
+  const shopItemsContainer = document.getElementById('shopItems');
+  if (!shopItemsContainer) return;
+
+  const ownedItems = StorageManager.getOwnedItems();
+  const items = shopItems.filter(item => item.category === currentShopCategory);
+
+  if (items.length === 0) {
+    shopItemsContainer.innerHTML = '<div class="empty-state">目前此分類還沒有任何商品。</div>';
+    return;
+  }
+
+  shopItemsContainer.innerHTML = '';
+  items.forEach(item => {
+    const itemDiv = document.createElement('div');
+    itemDiv.className = 'shop-item';
+
+    const isOwned = ownedItems.includes(item.id);
+    const canBuy = !isOwned && gameState.money >= item.price;
+    const buttonLabel = isOwned ? '已購買' : item.price === 0 ? '免費' : '購買';
+    const buttonClass = isOwned ? 'shop-item-button disabled' : `shop-item-button ${canBuy ? 'buyable' : 'unavailable'}`;
+    const disabledAttr = (!canBuy || isOwned) ? 'disabled' : '';
+
+    const imageMarkup = item.image ? `<img class="shop-item-image" src="${item.image}" alt="${item.name}">` : `<div class="shop-item-icon">${item.emoji || ''}</div>`;
+    itemDiv.innerHTML = `
+      ${imageMarkup}
+      <div class="shop-item-name">${item.name}</div>
+      <div class="shop-item-category">${item.category}</div>
+      <div class="shop-item-price">${item.price === 0 ? '免費' : '$' + item.price}</div>
+      <div class="shop-item-actions">
+        <button class="${buttonClass}" onclick="buyItem('${item.id}')" ${disabledAttr}>${buttonLabel}</button>
+      </div>
+    `;
+
+    shopItemsContainer.appendChild(itemDiv);
   });
 }
 
@@ -928,41 +992,23 @@ function resumeGame() {
   startGameTimer();
 }
 
-function openShop() {
+function openShop(category) {
   const shopModal = document.getElementById('shopModal');
   const shopMoney = document.getElementById('shopMoney');
-  const shopItemsContainer = document.getElementById('shopItems');
-  
+
   // 從 localStorage 讀取最新金錢
   gameState.money = StorageManager.getMoney();
-  const ownedItems = StorageManager.getOwnedItems();
   shopMoney.innerText = gameState.money;
-  shopItemsContainer.innerHTML = '';
-  
-  shopItems.forEach(item => {
-    const itemDiv = document.createElement('div');
-    itemDiv.className = 'shop-item';
 
-    const isOwned = ownedItems.includes(item.id);
-    const canBuy = !isOwned && gameState.money >= item.price;
-    const buttonLabel = isOwned ? '已購買' : '購買';
-    const buttonClass = isOwned ? 'shop-item-button disabled' : `shop-item-button ${canBuy ? 'buyable' : 'unavailable'}`;
-    const disabledAttr = (!canBuy || isOwned) ? 'disabled' : '';
-    
-    const imageMarkup = item.image ? `<img class="shop-item-image" src="${item.image}" alt="${item.name}">` : `<div class="shop-item-icon">${item.emoji}</div>`;
-    itemDiv.innerHTML = `
-      ${imageMarkup}
-      <div class="shop-item-name">${item.name}</div>
-      <div class="shop-item-category">${item.category}</div>
-      <div class="shop-item-price">$${item.price}</div>
-      <div class="shop-item-actions">
-        <button class="${buttonClass}" onclick="buyItem('${item.id}')" ${disabledAttr}>${buttonLabel}</button>
-      </div>
-    `;
-    
-    shopItemsContainer.appendChild(itemDiv);
-  });
-  
+  const categories = getInventoryCategories();
+  if (category && categories.includes(category)) {
+    currentShopCategory = category;
+  } else if (!categories.includes(currentShopCategory)) {
+    currentShopCategory = categories[0] || '釣竿';
+  }
+
+  renderShopTabs();
+  renderShopItems();
   shopModal.style.display = 'block';
 }
 
@@ -997,6 +1043,9 @@ function buyItem(itemId) {
     alert('❌ 餘額不足！');
   }
 }
+
+// 初始化背包與裝備
+ensureDefaultInventory();
 
 // 監聽外部點擊關閉商店
 window.addEventListener('click', (e) => {
