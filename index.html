@@ -15,7 +15,6 @@
     <div id="startMoneyBox">💵 餘額: <span id="startMoney">0</span></div>
 
     <div id="startTopButtons">
-      <button id="startVocabBtn" class="start-action-btn" onclick="openVocabularyBook()">📘 單字本</button>
       <button id="startShopBtn" class="start-action-btn" onclick="openShop()">🛍️ 商店</button>
       <button id="startInventoryBtn" class="start-action-btn" onclick="openInventory()">🎒 背包</button>
       <button id="startLeaderboardBtn" class="start-action-btn" onclick="openLeaderboard()">🏆 排行榜</button>
@@ -47,11 +46,27 @@
       <span>Score: <span id="score">0</span> |</span>
       <span><span id="timeLabel">Time</span>: <span id="time">60</span><span id="timeSuffix">s</span> |</span>
       <span>Combo: <span id="combo">0</span></span>
-      <button id="inventoryBtn" class="small-btn" onclick="openInventory()">🎒 背包</button>
+      <button id="pauseBtn" class="small-btn" onclick="pauseGame()">⏸ 暫停</button>
     </div>
 
     <!-- ⌨️ 輸入顯示 -->
     <div id="input"></div>
+  </div>
+
+  <!-- ⏸ 暫停視窗 -->
+  <div id="pauseModal" class="modal-screen" style="display: none;">
+    <div class="modal-card small-card">
+      <div class="modal-header">
+        <div>
+          <h2>⏸ 遊戲暫停</h2>
+          <p class="muted-text">遊戲已暫停，按「繼續」恢復或「結束」回到開始畫面。</p>
+        </div>
+      </div>
+      <div class="modal-actions bottom-actions">
+        <button class="primary-btn" onclick="resumeGame()">繼續</button>
+        <button class="secondary-btn" onclick="endGame()">結束</button>
+      </div>
+    </div>
   </div>
 
   <!-- 🧾 遊戲結束視窗 -->
@@ -71,8 +86,6 @@
         </div>
         <p id="leaderboardStatus" class="muted-text"></p>
       </div>
-
-      <div id="gameOverLeaderboardPreview" class="leaderboard-preview"></div>
 
       <div class="modal-actions">
         <button class="primary-btn" onclick="openLeaderboard()">查看排行榜</button>
@@ -118,56 +131,6 @@
     </div>
   </div>
 
-  <!-- 📘 單字本視窗 -->
-  <div id="vocabModal" class="modal-screen" style="display: none;">
-    <div class="modal-card vocab-card">
-      <div class="modal-header">
-        <div>
-          <h2>📘 單字本</h2>
-          <p class="muted-text">會儲存每一局打中的單字，並提供劍橋繁中辭典查詢。</p>
-        </div>
-        <button class="close-btn" onclick="closeVocabularyBook()">✕</button>
-      </div>
-
-      <div id="vocabEmpty" class="empty-state" style="display: none;">
-        目前還沒有單字紀錄，先玩一局就會出現。
-      </div>
-
-      <div id="vocabContent" style="display: none;">
-        <div class="vocab-layout">
-          <div class="round-list-wrap">
-            <h3>歷史紀錄</h3>
-            <div id="vocabHistoryList"></div>
-          </div>
-
-          <div class="word-table-wrap">
-            <div class="round-info">
-              <h3 id="vocabRoundTitle">本局單字</h3>
-              <p id="vocabRoundMeta" class="muted-text"></p>
-            </div>
-
-            <div class="table-scroll">
-              <table class="vocab-table">
-                <thead>
-                  <tr>
-                    <th>單字</th>
-                    <th>次數</th>
-                    <th>劍橋辭典</th>
-                  </tr>
-                </thead>
-                <tbody id="vocabTableBody"></tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-
-        <div class="modal-actions bottom-actions">
-          <button class="danger-btn" onclick="clearVocabularyHistory()">清空單字本</button>
-          <button class="secondary-btn" onclick="closeVocabularyBook()">關閉</button>
-        </div>
-      </div>
-    </div>
-  </div>
 
   <!-- 🛍️ 商店螢幕 -->
   <div id="shopModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.8); z-index: 1000; overflow-y: auto;">
@@ -187,11 +150,14 @@
       <div class="modal-header">
         <div>
           <h2>🎒 背包</h2>
-          <p class="muted-text">查看目前擁有的釣竿與服裝。</p>
+          <p class="muted-text">查看目前擁有的釣竿與人物。上方可切換分類，內部卡片樣式與商店一致。</p>
         </div>
         <button class="close-btn" onclick="closeInventory()">✕</button>
       </div>
-      <div id="inventoryContent"></div>
+      <div id="inventoryContent">
+        <div id="inventoryTabs" class="inventory-tabs"></div>
+        <div id="inventoryItems" class="inventory-items-grid"></div>
+      </div>
       <div class="modal-actions bottom-actions">
         <button class="secondary-btn" onclick="closeInventory()">關閉</button>
       </div>

@@ -92,42 +92,11 @@ function showGameOverModal() {
   submitScoreBtn.innerText = '登記分數';
   
   // 顯示排行榜預覽
-  displayLeaderboardPreview();
-  
   // 顯示模態框
   modal.style.display = 'flex';
   
   // 聚焦於輸入框
   playerNameInput.focus();
-}
-
-/**
- * 顯示排行榜預覽（遊戲結束後顯示）
- */
-async function displayLeaderboardPreview() {
-  const previewContainer = document.getElementById('gameOverLeaderboardPreview');
-  const leaderboard = await LEADERBOARD_API.getLeaderboard();
-  
-  if (leaderboard.length === 0) {
-    previewContainer.innerHTML = '<p style="text-align: center; color: #999;">目前還沒有排行榜紀錄</p>';
-    return;
-  }
-  
-  // 取前10名
-  const topPlayers = leaderboard.slice(0, 10);
-  let html = '<p style="font-size: 14px; margin-bottom: 10px;">🏆 當前排行榜（前10名）</p><table style="width: 100%; font-size: 12px; border-collapse: collapse;">';
-  html += '<tr style="background: #f0f0f0; border-bottom: 1px solid #ddd;"><th style="padding: 5px; text-align: left;">名次</th><th style="padding: 5px; text-align: left;">玩家</th><th style="padding: 5px; text-align: right;">分數</th></tr>';
-  
-  topPlayers.forEach((player, index) => {
-    html += `<tr style="border-bottom: 1px solid #eee;">
-      <td style="padding: 5px;">#${index + 1}</td>
-      <td style="padding: 5px;">${player.playerName}</td>
-      <td style="padding: 5px; text-align: right; color: #ff6b6b; font-weight: bold;">${player.score}</td>
-    </tr>`;
-  });
-  
-  html += '</table>';
-  previewContainer.innerHTML = html;
 }
 
 /**
@@ -314,14 +283,11 @@ window.addEventListener('click', (e) => {
  * 初始化排行榜（頁面加載時）
  */
 document.addEventListener('DOMContentLoaded', () => {
-  // 初始化排行榜本地存儲（如果不存在）
-  if (!localStorage.getItem('fishinGameLeaderboard')) {
-    // 創建初始示例排行榜
-    const initialLeaderboard = [
-      { playerName: '釣魚高手', score: 500, money: 500, difficulty: '困難', timestamp: new Date().toISOString() },
-      { playerName: '快速打字員', score: 450, money: 450, difficulty: '中等', timestamp: new Date().toISOString() },
-      { playerName: '新手玩家', score: 300, money: 300, difficulty: '簡單', timestamp: new Date().toISOString() }
-    ];
-    localStorage.setItem('fishinGameLeaderboard', JSON.stringify(initialLeaderboard));
+  const savedLeaderboard = JSON.parse(localStorage.getItem('fishinGameLeaderboard') || '[]');
+  const sampleNames = ['釣魚高手', '快速打字員', '新手玩家'];
+  const isSampleData = Array.isArray(savedLeaderboard) && savedLeaderboard.length > 0 && savedLeaderboard.every(entry => sampleNames.includes(entry.playerName));
+
+  if (!Array.isArray(savedLeaderboard) || savedLeaderboard.length === 0 || isSampleData) {
+    localStorage.setItem('fishinGameLeaderboard', JSON.stringify([]));
   }
 });

@@ -35,6 +35,21 @@ const StorageManager = {
       owned.push(itemId);
       StorageManager.setOwnedItems(owned);
     }
+  },
+  getEquippedItems: () => {
+    try {
+      return JSON.parse(localStorage.getItem('fishinGameEquippedItems')) || {};
+    } catch (error) {
+      return {};
+    }
+  },
+  setEquippedItems: (items) => localStorage.setItem('fishinGameEquippedItems', JSON.stringify(items)),
+  equipItem: (itemId) => {
+    const item = shopItems.find(i => i.id === itemId);
+    if (!item) return;
+    const equipped = StorageManager.getEquippedItems();
+    equipped[item.category] = itemId;
+    StorageManager.setEquippedItems(equipped);
   }
 };
 
@@ -63,6 +78,7 @@ const gameState = {
   elapsedSeconds: 0,
   mode: 'timed',
   isRunning: false,
+  isPaused: false,
   spawnInterval: null,
   timerInterval: null
 };
@@ -72,19 +88,14 @@ const gameState = {
 // ==========================================
 const shopItems = [
   // 釣竿類別
-  { id: 'rod1', name: '基本釣竿', category: '釣竿', price: 120, image: '釣竿.png' },
-  { id: 'rod2', name: '銀色釣竿', category: '釣竿', price: 220, image: '釣竿1.png' },
-  { id: 'rod3', name: '幸運釣竿', category: '釣竿', price: 360, image: '幸運釣竿.png' },
+  { id: 'rod2', name: '釣竿1', category: '釣竿', price: 220, image: '釣竿1.png' },
+  { id: 'rod3', name: '釣竿', category: '釣竿', price: 360, image: '釣竿.png' },
+  { id: 'rod4', name: '胡蘿蔔釣竿', category: '釣竿', price: 280, image: '胡蘿蔔釣竿.png' },
+  { id: 'rod5', name: '麥塊釣竿', category: '釣竿', price: 260, image: '麥塊釣竿.png' },
+  { id: 'rod6', name: '幸運釣竿', category: '釣竿', price: 360, image: '幸運釣竿.png' },
   
   // 人物幫手
   { id: 'char1', name: '魚夫助手', category: '人物', price: 160, image: '魚夫.png' },
-  { id: 'char2', name: '銀龍守護', category: '人物', price: 280, image: '銀龍魚.png' },
-  { id: 'char3', name: '蒼龍同行', category: '人物', price: 520, image: '蒼龍.png' },
-  
-  // 服裝
-  { id: 'cloth1', name: '胡蘿蔔裝', category: '服裝', price: 210, image: '胡蘿蔔釣竿.png' },
-  { id: 'cloth2', name: '彩虹魚衣', category: '服裝', price: 340, image: '魚.png' },
-  { id: 'cloth3', name: '深海披風', category: '服裝', price: 470, image: '銀龍魚.png' }
 ];
 
 // ==========================================
@@ -215,7 +226,20 @@ function updateUI() {
 function endGame() {
   clearInterval(gameState.spawnInterval);
   clearInterval(gameState.timerInterval);
+  gameState.spawnInterval = null;
+  gameState.timerInterval = null;
   gameState.isRunning = false;
+  gameState.isPaused = false;
+
+  const pauseModal = document.getElementById('pauseModal');
+  if (pauseModal) {
+    pauseModal.style.display = 'none';
+  }
+
+  const pauseBtn = document.getElementById('pauseBtn');
+  if (pauseBtn) {
+    pauseBtn.style.display = 'block';
+  }
   
   // 保存金錢到 localStorage
   StorageManager.setMoney(gameState.money);
@@ -248,25 +272,114 @@ function checkGameOver() {
 /**
  * 打開背包視窗
  */
-function openInventory() {
-  const inventoryModal = document.getElementById('inventoryModal');
+let currentInventoryCategory = '釣竿';
+const inventoryCategoryOrder = ['釣竿', '人物'];
+
+function getInventoryCategories() {
+  return Array.from(new Set(shopItems.map(item => item.category))).sort((a, b) => {
+    const aIndex = inventoryCategoryOrder.indexOf(a);
+    const bIndex = inventoryCategoryOrder.indexOf(b);
+    if (aIndex !== -1 || bIndex !== -1) return aIndex - bIndex;
+    return a.localeCompare(b);
+  });
+}
+
+function updatePlayerAppearance() {
+  const equippedItems = StorageManager.getEquippedItems();
+  const equippedRod = shopItems.find(item => item.id === equippedItems['釣竿']);
+  const equippedCharacter = shopItems.find(item => item.id === equippedItems['人物']);
+
+  if (rod && equippedRod && equippedRod.image) {
+    rod.style.backgroundImage = `url("${equippedRod.image}")`;
+  } else if (rod) {
+    rod.style.backgroundImage = `url("釣竿.png")`;
+  }
+
+  if (fisherman && equippedCharacter && equippedCharacter.image) {
+    fisherman.style.backgroundImage = `url("${equippedCharacter.image}")`;
+  } else if (fisherman) {
+    fisherman.style.backgroundImage = `url("魚夫.png")`;
+  }
+}
+
+function getOwnedItemsByCategory() {
   const ownedItems = StorageManager.getOwnedItems();
-  const ownedRods = shopItems.filter(item => item.category === '釣竿' && ownedItems.includes(item.id));
-  const ownedClothes = shopItems.filter(item => item.category === '服裝' && ownedItems.includes(item.id));
-  const inventoryContent = document.getElementById('inventoryContent');
+  return shopItems.reduce((groups, item) => {
+    if (!ownedItems.includes(item.id)) return groups;
+    if (!groups[item.category]) groups[item.category] = [];
+    groups[item.category].push(item);
+    return groups;
+  }, {});
+}
 
-  inventoryContent.innerHTML = `
-    <div class="inventory-group">
-      <h3>釣竿</h3>
-      ${ownedRods.length > 0 ? ownedRods.map(item => `<div class="inventory-item">${item.emoji}<span>${item.name}</span></div>`).join('') : '<div class="empty-line">尚未擁有釣竿</div>'}
-    </div>
-    <div class="inventory-group">
-      <h3>服裝</h3>
-      ${ownedClothes.length > 0 ? ownedClothes.map(item => `<div class="inventory-item">${item.emoji}<span>${item.name}</span></div>`).join('') : '<div class="empty-line">尚未擁有服裝</div>'}
-    </div>
-  `;
+function renderInventoryTabs() {
+  const categories = getInventoryCategories();
+  const tabsContainer = document.getElementById('inventoryTabs');
 
+  if (!tabsContainer) return;
+
+  tabsContainer.innerHTML = categories.map(category => {
+    const activeClass = category === currentInventoryCategory ? 'active' : '';
+    return `<button class="inventory-tab-btn ${activeClass}" onclick="openInventory('${category}')">${category}</button>`;
+  }).join('');
+}
+
+function renderInventoryItems() {
+  const inventoryItems = document.getElementById('inventoryItems');
+  const ownedItems = StorageManager.getOwnedItems();
+  const equippedItems = StorageManager.getEquippedItems();
+
+  const items = shopItems.filter(item => item.category === currentInventoryCategory && ownedItems.includes(item.id));
+  if (!inventoryItems) return;
+
+  if (items.length === 0) {
+    inventoryItems.innerHTML = '<div class="empty-state">目前此分類還沒有任何已擁有的物品。</div>';
+    return;
+  }
+
+  inventoryItems.innerHTML = items.map(item => {
+    const isEquipped = equippedItems[item.category] === item.id;
+    const buttonLabel = isEquipped ? '已裝備' : '裝備';
+    const buttonClass = isEquipped ? 'shop-item-button disabled' : 'shop-item-button buyable';
+    const disabledAttr = isEquipped ? 'disabled' : '';
+    const imageMarkup = item.image ? `<img class="shop-item-image" src="${item.image}" alt="${item.name}">` : `<div class="shop-item-icon">${item.emoji || ''}</div>`;
+
+    return `
+      <div class="shop-item inventory-item-card">
+        ${imageMarkup}
+        <div class="shop-item-name">${item.name}</div>
+        <div class="shop-item-category">${item.category}</div>
+        <div class="shop-item-actions">
+          <button class="${buttonClass}" onclick="equipItem('${item.id}')" ${disabledAttr}>${buttonLabel}</button>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function openInventory(category) {
+  const inventoryModal = document.getElementById('inventoryModal');
+  const categories = getInventoryCategories();
+
+  if (category && categories.includes(category)) {
+    currentInventoryCategory = category;
+  } else if (!categories.includes(currentInventoryCategory)) {
+    currentInventoryCategory = categories[0] || '釣竿';
+  }
+
+  renderInventoryTabs();
+  renderInventoryItems();
   inventoryModal.style.display = 'flex';
+}
+
+function equipItem(itemId) {
+  const item = shopItems.find(i => i.id === itemId);
+  if (!item) return;
+
+  const ownedItems = StorageManager.getOwnedItems();
+  if (!ownedItems.includes(itemId)) return;
+
+  StorageManager.equipItem(itemId);
+  openInventory();
 }
 
 /**
@@ -406,6 +519,11 @@ async function spawnFish() {
 
   sea.appendChild(fish);
 
+  fish.currentX = x;
+  fish.currentY = y;
+  fish.speedX = speedX;
+  fish.speedY = speedY;
+
   // 魚的移動邏輯
   const moveInterval = setInterval(() => {
     // 防止幽靈魚繼續計時
@@ -415,19 +533,19 @@ async function spawnFish() {
     }
 
     // 更新位置（使用隨機速度）
-    x += speedX;
-    y += speedY;
+    fish.currentX += fish.speedX;
+    fish.currentY += fish.speedY;
 
     // 垂直反彈
-    if (y <= 0 || y >= sea.clientHeight - size) {
-      speedY *= -1;
+    if (fish.currentY <= 0 || fish.currentY >= sea.clientHeight - size) {
+      fish.speedY *= -1;
     }
 
-    fish.style.left = x + "px";
-    fish.style.top = y + "px";
+    fish.style.left = fish.currentX + "px";
+    fish.style.top = fish.currentY + "px";
 
     // 檢查魚是否完全離開畫面
-    if (x > sea.clientWidth + size) {
+    if (fish.currentX > sea.clientWidth + size) {
       clearInterval(moveInterval);
       fish.remove();
       gameState.fishCount--;
@@ -458,6 +576,17 @@ async function spawnFish() {
  * 處理鍵盤輸入
  */
 document.addEventListener("keydown", (e) => {
+  if (e.key === 'Escape' && gameState.isRunning) {
+    if (gameState.isPaused) {
+      resumeGame();
+    } else {
+      pauseGame();
+    }
+    return;
+  }
+
+  if (!gameState.isRunning || gameState.isPaused) return;
+
   // 處理退格鍵
   if (e.key === "Backspace") {
     gameState.typed = gameState.typed.slice(0, -1);
@@ -606,6 +735,87 @@ function increaseDifficulty() {
   }
 }
 
+function resumeFishMovement(fish) {
+  if (!fish || fish.moveInterval) return;
+
+  const size = parseFloat(fish.style.width) || 80;
+  fish.currentX = typeof fish.currentX === 'number' ? fish.currentX : parseFloat(fish.style.left) || 0;
+  fish.currentY = typeof fish.currentY === 'number' ? fish.currentY : parseFloat(fish.style.top) || 0;
+  fish.speedX = typeof fish.speedX === 'number' ? fish.speedX : difficulty.speed * (0.6 + Math.random() * 0.4);
+  fish.speedY = typeof fish.speedY === 'number' ? fish.speedY : (Math.random() - 0.5) * 2;
+
+  fish.moveInterval = setInterval(() => {
+    if (!document.body.contains(fish)) {
+      clearInterval(fish.moveInterval);
+      return;
+    }
+
+    fish.currentX += fish.speedX;
+    fish.currentY += fish.speedY;
+
+    if (fish.currentY <= 0 || fish.currentY >= sea.clientHeight - size) {
+      fish.speedY *= -1;
+    }
+
+    fish.style.left = fish.currentX + "px";
+    fish.style.top = fish.currentY + "px";
+
+    if (fish.currentX > sea.clientWidth + size) {
+      clearInterval(fish.moveInterval);
+      fish.remove();
+      gameState.fishCount--;
+      if (gameState.mode === 'infinite') {
+        gameState.lives = Math.max(0, gameState.lives - 1);
+        if (gameState.lives <= 0) {
+          updateUI();
+          checkGameOver();
+          return;
+        }
+      }
+      gameState.combo = 0;
+      updateUI();
+    }
+  }, CONFIG.UPDATE_INTERVAL);
+}
+
+function startSpawnTimer() {
+  if (gameState.spawnInterval) return;
+  gameState.spawnInterval = setInterval(spawnFish, difficulty.spawnRate);
+}
+
+function startGameTimer() {
+  if (gameState.timerInterval) return;
+
+  gameState.timerInterval = setInterval(() => {
+    if (gameState.mode === 'timed') {
+      gameState.timeLeft -= 1;
+
+      if (gameState.timeLeft === 60 - currentDifficulty.increaseTime && CONFIG.MAX_FISH < currentDifficulty.maxMaxFish) {
+        CONFIG.MAX_FISH = currentDifficulty.maxMaxFish;
+        console.log(`🔥 難度升級！同時最大魚數提升至 ${CONFIG.MAX_FISH}`);
+      }
+
+      updateUI();
+      if (gameState.timeLeft <= 0) {
+        checkGameOver();
+      }
+    } else {
+      gameState.elapsedSeconds += 1;
+
+      if (gameState.elapsedSeconds % 5 === 0) {
+        difficulty.speed += CONFIG.INFINITE_SPEED_INCREMENT;
+      }
+
+      if (gameState.elapsedSeconds % 10 === 0) {
+        difficulty.minLen = Math.min(difficulty.minLen + 1, CONFIG.INFINITE_MAX_LETTER - 2);
+        difficulty.maxLen = Math.min(difficulty.maxLen + 1, CONFIG.INFINITE_MAX_LETTER);
+      }
+
+      updateUI();
+    }
+  }, 1000);
+}
+
 // ==========================================
 // 🎮 遊戲控制
 // ==========================================
@@ -648,45 +858,76 @@ function startGame(difficultyLevel = 'easy') {
   console.log(`🎣 遊戲開始！難度：${currentDifficulty.name}`);
 
   // 開始生成魚
-  gameState.spawnInterval = setInterval(spawnFish, difficulty.spawnRate);
+  startSpawnTimer();
+  startGameTimer();
 
-  // 遊戲時間 / 無限模式計時邏輯
-  gameState.timerInterval = setInterval(() => {
-    if (gameState.mode === 'timed') {
-      gameState.timeLeft -= 1;
-
-      // 在規定時間後提高魚的數量
-      if (gameState.timeLeft === 60 - currentDifficulty.increaseTime && CONFIG.MAX_FISH < currentDifficulty.maxMaxFish) {
-        CONFIG.MAX_FISH = currentDifficulty.maxMaxFish;
-        console.log(`🔥 難度升級！同時最大魚數提升至 ${CONFIG.MAX_FISH}`);
-      }
-
-      updateUI();
-      if (gameState.timeLeft <= 0) {
-        checkGameOver();
-      }
-    } else {
-      gameState.elapsedSeconds += 1;
-
-      if (gameState.elapsedSeconds % 5 === 0) {
-        difficulty.speed += CONFIG.INFINITE_SPEED_INCREMENT;
-      }
-
-      if (gameState.elapsedSeconds % 10 === 0) {
-        difficulty.minLen = Math.min(difficulty.minLen + 1, CONFIG.INFINITE_MAX_LETTER - 2);
-        difficulty.maxLen = Math.min(difficulty.maxLen + 1, CONFIG.INFINITE_MAX_LETTER);
-      }
-
-      updateUI();
-    }
-  }, 1000);
-
+  gameState.isPaused = false;
+  updatePlayerAppearance();
   updateUI();
 }
 
 /**
  * 打開商店
  */
+function pauseGame() {
+  if (!gameState.isRunning || gameState.isPaused) return;
+
+  gameState.isPaused = true;
+
+  // 停止所有魚的移動
+  document.querySelectorAll('.fish').forEach(fish => {
+    if (fish.moveInterval) {
+      clearInterval(fish.moveInterval);
+      fish.moveInterval = null;
+    }
+  });
+
+  // 停止生成魚與計時器
+  clearInterval(gameState.spawnInterval);
+  gameState.spawnInterval = null;
+  clearInterval(gameState.timerInterval);
+  gameState.timerInterval = null;
+
+  // 顯示暫停模態
+  const pauseModal = document.getElementById('pauseModal');
+  if (pauseModal) {
+    pauseModal.style.display = 'flex';
+  }
+
+  // 隱藏暫停按鈕
+  const pauseBtn = document.getElementById('pauseBtn');
+  if (pauseBtn) {
+    pauseBtn.style.display = 'none';
+  }
+}
+
+function resumeGame() {
+  if (!gameState.isRunning || !gameState.isPaused) return;
+
+  gameState.isPaused = false;
+
+  // 隱藏暫停模態
+  const pauseModal = document.getElementById('pauseModal');
+  if (pauseModal) {
+    pauseModal.style.display = 'none';
+  }
+
+  // 顯示暫停按鈕
+  const pauseBtn = document.getElementById('pauseBtn');
+  if (pauseBtn) {
+    pauseBtn.style.display = 'block';
+  }
+
+  // 恢復所有魚的移動
+  document.querySelectorAll('.fish').forEach(fish => {
+    resumeFishMovement(fish);
+  });
+
+  // 恢復生成魚與計時器
+  startSpawnTimer();
+  startGameTimer();
+}
+
 function openShop() {
   const shopModal = document.getElementById('shopModal');
   const shopMoney = document.getElementById('shopMoney');
@@ -744,7 +985,7 @@ function buyItem(itemId) {
     gameState.money -= item.price;
     StorageManager.setMoney(gameState.money);  // 保存金錢
     StorageManager.addOwnedItem(item.id);
-    alert(`✅ 購買成功！\n${item.emoji} ${item.name}\n餘額: $${gameState.money}`);
+    alert(`✅ 購買成功！\n${item.name}\n餘額: $${gameState.money}`);
     
     // 更新開始畫面的金錢顯示
     if (document.getElementById('startMoney')) {

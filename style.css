@@ -555,20 +555,127 @@ body::before {
   margin-bottom: 12px;
 }
 
+.inventory-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.inventory-tab-btn {
+  border: none;
+  border-radius: 999px;
+  padding: 10px 18px;
+  background: #f0f0f0;
+  color: #0d1f3c;
+  cursor: pointer;
+  font-weight: 700;
+  transition: transform 0.2s ease, background-color 0.2s ease;
+}
+
+.inventory-tab-btn:hover {
+  transform: translateY(-1px);
+}
+
+.inventory-tab-btn.active {
+  background: #0d1f3c;
+  color: #ffffff;
+}
+
+.inventory-items-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+}
+
+.inventory-item-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 20px;
+  border: 2px solid #ddd;
+  border-radius: 16px;
+  background: #f5f5f5;
+}
+
+.inventory-item-card .shop-item-image,
+.inventory-item-card .shop-item-icon {
+  width: 100%;
+  max-width: 180px;
+  height: 140px;
+}
+
+.inventory-item-card .shop-item-category {
+  margin-bottom: 10px;
+}
+
+.inventory-item-card .shop-item-actions {
+  width: 100%;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 30px 20px;
+  border-radius: 14px;
+  background: #fff7f0;
+  color: #7a5a35;
+  font-size: 15px;
+}
+
 .inventory-item {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 12px 14px;
+  gap: 14px;
+  padding: 14px 16px;
   border: 1px solid #e2e2e2;
-  border-radius: 12px;
+  border-radius: 16px;
   background: #f9f9f9;
-  margin-bottom: 10px;
+  margin-bottom: 12px;
   font-weight: 600;
+}
+
+.inventory-item img,
+.inventory-item .shop-item-icon {
+  width: 120px;
+  height: 120px;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 14px;
+  object-fit: contain;
+  background: #fff;
+  padding: 10px;
+  border: 1px solid #e2e2e2;
 }
 
 .inventory-item span {
   flex: 1;
+}
+
+.inventory-equip-btn {
+  border: none;
+  padding: 10px 14px;
+  border-radius: 10px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.15s ease, background-color 0.15s ease;
+}
+
+.inventory-equip-btn.buyable {
+  background: #2196F3;
+  color: white;
+}
+
+.inventory-equip-btn.equipped {
+  background: #4CAF50;
+  color: white;
+  cursor: default;
+}
+
+.inventory-equip-btn.buyable:hover {
+  transform: translateY(-1px);
 }
 
 .empty-line {
