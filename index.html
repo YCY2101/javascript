@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="🎣 釣魚遊戲 - 快速打字遊戲">
+  <title>🎣 Fishing Typing Game - 釣魚遊戲</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+  <!-- 🎮 開始畫面 -->
+  <div id="startScreen">
+    <div id="startMoneyBox">💵 餘額: <span id="startMoney">0</span></div>
+
+    <div id="startTopButtons">
+      <button id="startVocabBtn" class="start-action-btn" onclick="openVocabularyBook()">📘 單字本</button>
+      <button id="startShopBtn" class="start-action-btn" onclick="openShop()">🛍️ 商店</button>
+      <button id="startInventoryBtn" class="start-action-btn" onclick="openInventory()">🎒 背包</button>
+    </div>
+
+    <h1>🎣 Fishing Typing Game</h1>
+    <p style="font-size: 18px; margin: 0;">快速打字，釣出更多魚吧！</p>
+
+    <div id="difficultySelection">
+      <button class="difficulty-btn" onclick="startGame('easy')">簡單</button>
+      <button class="difficulty-btn" onclick="startGame('normal')">中等</button>
+      <button class="difficulty-btn" onclick="startGame('hard')">困難</button>
+    </div>
+  </div>
+
+  <!-- 🎮 遊戲區域 -->
+  <div id="game" style="display: none;">
+    <div id="sea"></div>
+    <div id="land">
+      <div id="boat"></div>
+      <!-- 🎣 魚夫 -->
+      <div id="fisherman"></div>
+      <div id="rod"></div>
+    </div>
+
+    <!-- 📊 遊戲信息 -->
+    <div id="info">
+      Score: <span id="score">0</span> |
+      Time: <span id="time">60</span>s |
+      Combo: <span id="combo">0</span>
+    </div>
+
+    <!-- ⌨️ 輸入顯示 -->
+    <div id="input"></div>
+
+    <!-- ⏸️ 暫停按鈕 -->
+    <button id="pauseBtn" onclick="pauseGame()">⏸️ 暫停</button>
+  </div>
+
+  <!-- ⏸️ 暫停視窗 -->
+  <div id="pauseModal" class="modal-screen" style="display: none;">
+    <div class="modal-card small-card">
+      <h2>⏸️ 遊戲暫停</h2>
+      <div class="modal-actions">
+        <button class="primary-btn" onclick="resumeGame()">繼續遊戲</button>
+        <button class="secondary-btn" onclick="restartGame()">回到首頁</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 🧾 遊戲結束視窗 -->
+  <div id="gameOverModal" class="modal-screen" style="display: none;">
+    <div class="modal-card small-card">
+      <h2>⏰ 遊戲結束</h2>
+      <p>💯 最終分數：<span id="finalScore">0</span></p>
+      <p>💵 目前餘額：<span id="finalMoney">0</span></p>
+      <p>📘 本局單字數：<span id="finalWordCount">0</span></p>
+      <div class="modal-actions">
+        <button class="primary-btn" onclick="openVocabularyBook(gameState.lastRoundId)">開啟本局單字本</button>
+        <button class="secondary-btn" onclick="restartGame()">回到首頁</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 📘 單字本視窗 -->
+  <div id="vocabModal" class="modal-screen" style="display: none;">
+    <div class="modal-card vocab-card">
+      <div class="modal-header">
+        <div>
+          <h2>📘 單字本</h2>
+          <p class="muted-text">會儲存每一局打中的單字，並提供 JavaScript 相關解釋。</p>
+        </div>
+        <button class="close-btn" onclick="closeVocabularyBook()">✕</button>
+      </div>
+
+      <div id="vocabEmpty" class="empty-state" style="display: none;">
+        目前還沒有單字紀錄，先玩一局就會出現。
+      </div>
+
+      <div id="vocabContent" style="display: none;">
+        <div class="vocab-layout">
+          <div class="round-list-wrap">
+            <h3>歷史紀錄</h3>
+            <div id="vocabHistoryList"></div>
+          </div>
+
+          <div class="word-table-wrap">
+            <div class="round-info">
+              <h3 id="vocabRoundTitle">本局單字</h3>
+              <p id="vocabRoundMeta" class="muted-text"></p>
+            </div>
+
+            <div class="table-scroll">
+              <table class="vocab-table">
+                <thead>
+                  <tr>
+                    <th>單字</th>
+                    <th>次數</th>
+                    <th>JS 解釋</th>
+                  </tr>
+                </thead>
+                <tbody id="vocabTableBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-actions bottom-actions">
+          <button class="danger-btn" onclick="clearVocabularyHistory()">清空單字本</button>
+          <button class="secondary-btn" onclick="closeVocabularyBook()">關閉</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 🎒 背包螢幕 -->
+  <div id="inventoryModal" class="modal-screen" style="display: none;">
+    <div class="modal-card vocab-card">
+      <div class="modal-header">
+        <div>
+          <h2>🎒 背包</h2>
+          <p class="muted-text">顯示你在商店購買的物品，按類別分類。</p>
+        </div>
+        <div id="inventoryCount" style="font-size: 18px; font-weight: 700; color: #ffffff;">0 件</div>
+        <button class="close-btn" onclick="closeInventory()">✕</button>
+      </div>
+      <div id="inventoryContent" class="inventory-content" style="background: rgba(255,255,255,0.06); padding: 16px; border-radius: 14px;">
+        <div class="inventory-empty">目前尚未購買任何物品，快去商店挑選吧！</div>
+      </div>
+      <div class="modal-actions">
+        <button class="secondary-btn" onclick="closeInventory()">關閉</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 🛍️ 商店螢幕 -->
+  <div id="shopModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.8); z-index: 1000; overflow-y: auto;">
+    <div style="max-width: 900px; margin: 20px auto; background: white; border-radius: 10px; padding: 30px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <h2 style="margin: 0;">🛍️ 商店</h2>
+        <div style="font-size: 20px; font-weight: bold;">餘額: <span id="shopMoney">0</span></div>
+        <button onclick="closeShop()" style="padding: 10px 20px; font-size: 16px; background: #ccc; border: none; border-radius: 5px; cursor: pointer;">關閉</button>
+      </div>
+      <div id="shopItems" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-top: 20px;"></div>
+    </div>
+  </div>
+
+  <!-- 🔊 音效 -->
+  <audio id="hitSound" src="https://www.soundjay.com/button/beep-07.wav"></audio>
+
+  <!-- 📜 腳本 -->
+  <script src="script.js"></script>
+</body>
+</html>
