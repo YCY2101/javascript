@@ -36,6 +36,16 @@ const StorageManager = {
       StorageManager.setOwnedItems(owned);
     }
   },
+  getHighScore: () => parseInt(localStorage.getItem('fishinGameHighScore')) || 0,
+  setHighScore: (score) => localStorage.setItem('fishinGameHighScore', score),
+  updateHighScore: (score) => {
+    const current = StorageManager.getHighScore();
+    if (score > current) {
+      StorageManager.setHighScore(score);
+      return score;
+    }
+    return current;
+  },
   getEquippedItems: () => {
     try {
       return JSON.parse(localStorage.getItem('fishinGameEquippedItems')) || {};
@@ -63,11 +73,20 @@ if (document.getElementById('startMoney')) {
   window.addEventListener('moneyUpdated', updateStartMoneyDisplay);
 }
 
+if (document.getElementById('startHighScore')) {
+  document.getElementById('startHighScore').innerText = StorageManager.getHighScore();
+  const updateStartHighScoreDisplay = () => {
+    document.getElementById('startHighScore').innerText = StorageManager.getHighScore();
+  };
+  window.addEventListener('highScoreUpdated', updateStartHighScoreDisplay);
+}
+
 // ==========================================
 // 📊 遊戲狀態
 // ==========================================
 const gameState = {
   score: 0,
+  highScore: StorageManager.getHighScore(),
   money: StorageManager.getMoney(),
   timeLeft: 60,
   combo: 0,
@@ -87,15 +106,32 @@ const gameState = {
 // 🛍️ 商店物品
 // ==========================================
 const shopItems = [
-  // 釣竿類別
-  { id: 'rod2', name: '釣竿1', category: '釣竿', price: 220, image: '釣竿1.png' },
-  { id: 'rod3', name: '釣竿', category: '釣竿', price: 360, image: '釣竿.png' },
-  { id: 'rod4', name: '胡蘿蔔釣竿', category: '釣竿', price: 280, image: '胡蘿蔔釣竿.png' },
-  { id: 'rod5', name: '麥塊釣竿', category: '釣竿', price: 260, image: '麥塊釣竿.png' },
-  { id: 'rod6', name: '幸運釣竿', category: '釣竿', price: 360, image: '幸運釣竿.png' },
+  { id: 'rod1', name: '普通釣竿', category: '釣竿', price: 0, image: '釣竿/釣竿.png' },
+  { id: 'rod2', name: '釣竿1', category: '釣竿', price: 200, image: '釣竿/釣竿1.png' },
+  { id: 'rod4', name: '麥塊釣竿', category: '釣竿', price: 400, image: '釣竿/麥塊釣竿.png' },
+  { id: 'rod8', name: '企鵝釣竿', category: '釣竿', price: 600, image: '釣竿/企鵝釣竿.png', unlockScore: 80 },
+  { id: 'rod9', name: '你爺爺的釣竿', category: '釣竿', price: 6767, image: '釣竿/你爺爺的釣竿.png', unlockScore: 1000  },
+  { id: 'rod10', name: '道士釣竿', category: '釣竿', price: 1000, image: '釣竿/道士釣竿.png', unlockScore: 100  },
+  { id: 'rod11', name: '高冷女神釣竿', category: '釣竿', price: 1100, image: '釣竿/高冷女神釣竿.png', unlockScore: 220  },
+  { id: 'rod12', name: '龍焰釣竿', category: '釣竿', price: 1200, image: '釣竿/龍焰釣竿.png', unlockScore: 250  },
+  { id: 'rod3', name: '胡蘿蔔釣竿', category: '釣竿', price: 2500, image: '釣竿/胡蘿蔔釣竿.png', unlockScore: 300 },
+  { id: 'rod6', name: 'RGB釣竿', category: '釣竿', price: 3000, image: '釣竿/RGB釣竿.png', unlockScore: 380 },
+  { id: 'rod5', name: '幸運釣竿', category: '釣竿', price: 4500, image: '釣竿/幸運釣竿.png', unlockScore: 420 },
+  { id: 'rod7', name: '亞特蘭提斯釣竿', category: '釣竿', price: 7000, image: '釣竿/亞特蘭提斯釣竿.png', unlockScore: 1200 },
   
-  // 人物幫手
-  { id: 'char1', name: '魚夫', category: '人物', price: 160, image: '魚夫.png' },
+  { id: 'char0', name: '魚夫', category: '人物', price: 0, image: '漁夫/魚夫.png' },
+  { id: 'char10', name: '街女版漁夫', category: '人物', price: 650, image: '漁夫/街女版漁夫.png' },
+  { id: 'char1', name: '兔迪井莞漁夫', category: '人物', price: 700, image: '漁夫/兔迪井莞漁夫.png' },
+  { id: 'char5', name: '年輕版漁夫', category: '人物', price: 720, image: '漁夫/年輕版漁夫.png' },
+  { id: 'char8', name: '緝棄企鵝版漁夫', category: '人物', price: 730, image: '漁夫/緝棄企鵝版漁夫.png' },
+  { id: 'char4', name: '大帥哥版漁夫', category: '人物', price: 760, image: '漁夫/大帥哥版漁夫.png' },
+  { id: 'char9', name: '艾里克斯版漁夫', category: '人物', price: 780, image: '漁夫/艾里克斯版漁夫.png' },
+  { id: 'char7', name: '狐狸客漁夫', category: '人物', price: 820, image: '漁夫/狐狸客漁夫.png' },
+  { id: 'char2', name: '冷靜的貓漁夫', category: '人物', price: 850, image: '漁夫/冷靜的貓漁夫.png' },
+  { id: 'char12', name: '麥塊路人版漁夫', category: '人物', price: 880, image: '漁夫/麥塊路人版漁夫.png' },
+  { id: 'char3', name: '史蒂夫版漁夫', category: '人物', price: 2200, image: '漁夫/史蒂夫版漁夫.png', unlockScore: 360 },
+  { id: 'char11', name: '麥塊綠色村民魚夫', category: '人物', price: 5000, image: '漁夫/麥塊綠色村民魚夫.png', unlockScore: 420 },
+  { id: 'char6', name: '浙一昇孤獨的狼漁夫', category: '人物', price: 10000, image: '漁夫/浙一昇孤獨的狼漁夫.png', unlockScore: 480 },
 ];
 
 // ==========================================
@@ -177,10 +213,23 @@ const CONFIG = {
 
 // 🐟 魚的圖片列表
 const fishImages = [
-  "魚.png",
-  "菜市場魚.png",
-  "蒼龍.png",
-  "銀龍魚.png"
+  "魚/魚.png",
+  "魚/菜市場魚.png",
+  "魚/蒼龍.png",
+  "魚/銀龍魚.png",
+  "魚/丑得曜亖魚.png",
+  "魚/中狗古文明魚.png",
+  "魚/亮食昵魚.png",
+  "魚/可愛大眼魚.png",
+  "魚/泥椰椰時代的魚.png",
+  "魚/珍珠魚.png",
+  "魚/瞅布拉基魚.png",
+  "魚/藍寶堅魚.png",
+  "魚/蘭水晶魚.png",
+  "魚/貞茱迺查魚.png",
+  "魚/貳滴魚.png",
+  "魚/霓虹魚.png",
+  "魚/餓魚.png"
 ];
 
 // ==========================================
@@ -247,6 +296,12 @@ function endGame() {
   
   // 保存金錢到 localStorage
   StorageManager.setMoney(gameState.money);
+
+  // 更新最高分
+  if (gameState.score > gameState.highScore) {
+    gameState.highScore = StorageManager.updateHighScore(gameState.score);
+    window.dispatchEvent(new Event('highScoreUpdated'));
+  }
   
   // 隱藏遊戲區域，顯示遊戲結束模態框
   game.style.display = "none";
@@ -319,7 +374,23 @@ function renderShopItems() {
   if (!shopItemsContainer) return;
 
   const ownedItems = StorageManager.getOwnedItems();
-  const items = shopItems.filter(item => item.category === currentShopCategory);
+  const items = shopItems
+    .filter(item => item.category === currentShopCategory)
+    .sort((a, b) => {
+      // 使用儲存的最高分判斷是否鎖定（沒有 unlockScore 的視為未鎖定）
+      const storedHigh = StorageManager.getHighScore();
+      const aLocked = !!a.unlockScore && storedHigh < a.unlockScore;
+      const bLocked = !!b.unlockScore && storedHigh < b.unlockScore;
+
+      // 鎖定的商品放後面
+      if (aLocked !== bLocked) return aLocked ? 1 : -1;
+
+      // 價格由低到高（包含所有商品）
+      if (a.price !== b.price) return a.price - b.price;
+
+      // 價格相同則以名稱排序
+      return a.name.localeCompare(b.name, 'zh-TW');
+    });
 
   if (items.length === 0) {
     shopItemsContainer.innerHTML = '<div class="empty-state">目前此分類還沒有任何商品。</div>';
@@ -332,10 +403,21 @@ function renderShopItems() {
     itemDiv.className = 'shop-item';
 
     const isOwned = ownedItems.includes(item.id);
-    const canBuy = !isOwned && gameState.money >= item.price;
-    const buttonLabel = isOwned ? '已購買' : item.price === 0 ? '免費' : '購買';
-    const buttonClass = isOwned ? 'shop-item-button disabled' : `shop-item-button ${canBuy ? 'buyable' : 'unavailable'}`;
-    const disabledAttr = (!canBuy || isOwned) ? 'disabled' : '';
+    const storedHigh = StorageManager.getHighScore();
+    const isLocked = !!item.unlockScore && storedHigh < item.unlockScore;
+    const canBuy = !isOwned && !isLocked && gameState.money >= item.price;
+    const buttonLabel = isOwned
+      ? '已購買'
+      : isLocked
+      ? `需 ${item.unlockScore} 分解鎖`
+      : item.price === 0
+      ? '免費'
+      : '購買';
+    const buttonClass = isOwned || isLocked
+      ? 'shop-item-button unavailable'
+      : `shop-item-button ${canBuy ? 'buyable' : 'unavailable'}`;
+    const disabledAttr = (!canBuy || isOwned || isLocked) ? 'disabled' : '';
+    const unlockText = item.unlockScore ? `<div class="shop-item-unlock">需 ${item.unlockScore} 分解鎖</div>` : '';
 
     const imageMarkup = item.image ? `<img class="shop-item-image" src="${item.image}" alt="${item.name}">` : `<div class="shop-item-icon">${item.emoji || ''}</div>`;
     itemDiv.innerHTML = `
@@ -343,6 +425,7 @@ function renderShopItems() {
       <div class="shop-item-name">${item.name}</div>
       <div class="shop-item-category">${item.category}</div>
       <div class="shop-item-price">${item.price === 0 ? '免費' : '$' + item.price}</div>
+      ${unlockText}
       <div class="shop-item-actions">
         <button class="${buttonClass}" onclick="buyItem('${item.id}')" ${disabledAttr}>${buttonLabel}</button>
       </div>
@@ -360,13 +443,13 @@ function updatePlayerAppearance() {
   if (rod && equippedRod && equippedRod.image) {
     rod.style.backgroundImage = `url("${equippedRod.image}")`;
   } else if (rod) {
-    rod.style.backgroundImage = `url("釣竿.png")`;
+    rod.style.backgroundImage = `url("釣竿/釣竿.png")`;
   }
 
   if (fisherman && equippedCharacter && equippedCharacter.image) {
     fisherman.style.backgroundImage = `url("${equippedCharacter.image}")`;
   } else if (fisherman) {
-    fisherman.style.backgroundImage = `url("魚夫.png")`;
+    fisherman.style.backgroundImage = `url("漁夫/魚夫.png")`;
   }
 }
 
@@ -1007,10 +1090,15 @@ function openShop(category) {
 
   const shopModal = document.getElementById('shopModal');
   const shopMoney = document.getElementById('shopMoney');
+  const shopHighScore = document.getElementById('shopHighScore');
 
-  // 從 localStorage 讀取最新金錢
+  // 從 localStorage 讀取最新金錢和最高分
   gameState.money = StorageManager.getMoney();
+  gameState.highScore = StorageManager.getHighScore();
   shopMoney.innerText = gameState.money;
+  if (shopHighScore) {
+    shopHighScore.innerText = gameState.highScore;
+  }
 
   const categories = getInventoryCategories();
   if (category && categories.includes(category)) {
@@ -1036,24 +1124,29 @@ function closeShop() {
  */
 function buyItem(itemId) {
   const item = shopItems.find(i => i.id === itemId);
-  
   if (!item) return;
-  
-  if (gameState.money >= item.price) {
-    gameState.money -= item.price;
-    StorageManager.setMoney(gameState.money);  // 保存金錢
-    StorageManager.addOwnedItem(item.id);
-    alert(`✅ 購買成功！\n${item.name}\n餘額: $${gameState.money}`);
-    
-    // 更新開始畫面的金錢顯示
-    if (document.getElementById('startMoney')) {
-      document.getElementById('startMoney').innerText = gameState.money;
-    }
-    
-    openShop(); // 重新開啟商店更新顯示
-  } else {
-    alert('❌ 餘額不足！');
+
+  if (item.unlockScore && gameState.highScore < item.unlockScore) {
+    alert(`❌ 你需要 ${item.unlockScore} 分才能解鎖 ${item.name}。`);
+    return;
   }
+
+  if (gameState.money < item.price) {
+    alert('❌ 餘額不足！');
+    return;
+  }
+
+  gameState.money -= item.price;
+  StorageManager.setMoney(gameState.money);  // 保存金錢
+  StorageManager.addOwnedItem(item.id);
+  alert(`✅ 購買成功！\n${item.name}\n餘額: $${gameState.money}`);
+  
+  // 更新開始畫面的金錢顯示
+  if (document.getElementById('startMoney')) {
+    document.getElementById('startMoney').innerText = gameState.money;
+  }
+  
+  openShop(); // 重新開啟商店更新顯示
 }
 
 // 初始化背包與裝備

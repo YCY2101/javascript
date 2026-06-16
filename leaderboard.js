@@ -40,19 +40,27 @@ const LEADERBOARD_API = {
       );
 
       if (duplicate) {
-        return scores;
+        return { scores, duplicate: true };
       }
 
-      scores.push({
+      const newEntry = {
         ...playerData,
         timestamp: new Date().toISOString()
-      });
+      };
+      scores.push(newEntry);
       
       // 排序：分數從高到低
       scores.sort((a, b) => b.score - a.score);
       
       // 只保留前1000名
       const topScores = scores.slice(0, 1000);
+      const playerRank = topScores.findIndex(entry =>
+        entry.playerName === playerData.playerName &&
+        entry.score === playerData.score &&
+        entry.difficulty === playerData.difficulty &&
+        entry.wordCount === playerData.wordCount &&
+        entry.timestamp === newEntry.timestamp
+      ) + 1;
       
       // 保存到本地存儲（作為主要存儲）
       localStorage.setItem('fishinGameLeaderboard', JSON.stringify(topScores));
@@ -71,10 +79,10 @@ const LEADERBOARD_API = {
         console.log('本地保存成功，但無法同步到遠程API');
       }
       
-      return topScores;
+      return { scores: topScores, duplicate: false, rank: playerRank };
     } catch (error) {
       console.error('❌ 保存分數失敗:', error);
-      return [];
+      return { scores: [], duplicate: false };
     }
   }
 };
@@ -139,20 +147,6 @@ async function submitScore() {
     return;
   }
 
-  const existingScores = await LEADERBOARD_API.getLeaderboard();
-  const alreadySubmitted = existingScores.some(entry =>
-    entry.playerName === playerName &&
-    entry.score === gameState.score &&
-    entry.difficulty === (currentDifficulty?.name || '未知') &&
-    entry.wordCount === gameState.caughtFishCount
-  );
-
-  if (alreadySubmitted) {
-    leaderboardStatus.innerText = '❌ 已登記，無法重複登記相同分數';
-    leaderboardStatus.style.color = '#ff6b6b';
-    submitScoreBtn.disabled = false;
-    return;
-  }
   
   leaderboardStatus.innerText = '⏳ 登記中...';
   leaderboardStatus.style.color = '#999';
@@ -163,22 +157,27 @@ async function submitScore() {
       playerName: playerName,
       score: gameState.score,
       difficulty: currentDifficulty?.name || '未知',
-      wordCount: gameState.caughtFishCount,
-      timestamp: new Date().toISOString(),
-      ...(gameState.mode === 'infinite'
-        ? { duration: gameState.elapsedSeconds }
-        : { finishedAt: new Date().toISOString() })
+      mode: gameState.mode,
+      duration: gameState.mode === 'infinite' ? gameState.elapsedSeconds : null,
+      finishedAt: new Date().toISOString(),
+      wordCount: gameState.caughtFishCount
     };
     
     // 保存分數
-    const updatedLeaderboard = await LEADERBOARD_API.saveScore(playerData);
+    const saveResult = await LEADERBOARD_API.saveScore(playerData);
+
+    if (saveResult.duplicate) {
+      leaderboardStatus.innerText = '❌ 已登記，無法重複登記相同分數';
+      leaderboardStatus.style.color = '#ff6b6b';
+      submitScoreBtn.disabled = false;
+      return;
+    }
+
+    const playerRank = saveResult.rank || null;
     
-    // 找出玩家的排名
-    const playerRank = updatedLeaderboard.findIndex(p => 
-      p.playerName === playerName && p.score === gameState.score
-    ) + 1;
-    
-    leaderboardStatus.innerHTML = `✅ 成功登記！排名：<strong>#${playerRank}</strong>`;
+    leaderboardStatus.innerHTML = playerRank
+      ? `✅ 成功登記！排名：<strong>#${playerRank}</strong>`
+      : '✅ 成功登記！請刷新排行榜查看排名。';
     leaderboardStatus.style.color = '#4CAF50';
     
     // 刷新排行榜預覽
@@ -281,14 +280,15 @@ function formatDuration(seconds) {
   return `${mins}:${secs.toString().padStart(2, '0')}`;
 }
 
-function formatDate(dateString) {
-  const date = new Date(dateString);
+function formatDate(value) {
+  const date = new Date(value);
   if (Number.isNaN(date.getTime())) return '-';
-  return date.toLocaleDateString('zh-TW', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit'
-  });
+  const year = date.getFullYear();
+  const month = (date.getMonth() + 1).toString().padStart(2, '0');
+  const day = date.getDate().toString().padStart(2, '0');
+  const hour = date.getHours().toString().padStart(2, '0');
+  const minute = date.getMinutes().toString().padStart(2, '0');
+  return `${year}年${month}月${day}日 ${hour}:${minute}`;
 }
 
 function getFilteredLeaderboard() {
@@ -327,11 +327,13 @@ function renderLeaderboardPage(page = 1) {
   pageItems.forEach((player, index) => {
     const row = document.createElement('tr');
     const globalIndex = startIndex + index;
-    const timeCell = player.duration != null
-      ? formatDuration(player.duration)
-      : (player.finishedAt || player.timestamp)
-        ? formatDate(player.finishedAt || player.timestamp)
-        : '-';
+    const timeCell = player.mode === 'infinite'
+      ? formatDuration(player.duration || 0)
+      : player.finishedAt
+        ? formatDate(player.finishedAt)
+        : player.timestamp
+          ? formatDate(player.timestamp)
+          : '-';
 
     row.innerHTML = `
       <td>#${globalIndex + 1}</td>

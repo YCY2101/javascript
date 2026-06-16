@@ -173,7 +173,7 @@ body::before {
   left: 50px;
   width: 240px;
   height: 200px;
-  background: url("魚夫.png") no-repeat center bottom;
+  background: url("漁夫/魚夫.png") no-repeat center bottom;
   background-size: contain;
   transform-origin: center 85%;
   z-index: 5;
@@ -221,7 +221,7 @@ body::before {
   left: 175px;
   width: 100px;
   height: 200px;
-  background: url("釣竿.png") no-repeat center bottom;
+  background: url("釣竿/釣竿.png") no-repeat center bottom;
   background-size: contain;
   z-index: 7;
   transform: rotate(-15deg);
@@ -435,16 +435,24 @@ body::before {
 .shop-item-price {
   color: #ff6b6b;
   font-weight: bold;
-  margin-bottom: 12px;
+  margin-bottom: 8px;
   font-size: 18px;
+}
+
+.shop-item-unlock {
+  color: #ffbf00;
+  font-size: 12px;
+  margin-bottom: 10px;
 }
 
 .shop-item-actions {
   width: 100%;
+  display: flex;
 }
 
 .shop-item-button {
   width: 100%;
+  min-height: 48px;
   padding: 12px 0;
   border: none;
   border-radius: 8px;
@@ -962,3 +970,4 @@ body::before {
   margin: 0;
   font-size: 12px;
 }
+

@@ -13,6 +13,7 @@
   <!-- 🎮 開始畫面 -->
   <div id="startScreen">
     <div id="startMoneyBox">💵 餘額: <span id="startMoney">0</span></div>
+    <div id="startHighScoreBox">🏅 最高分: <span id="startHighScore">0</span></div>
 
     <div id="startTopButtons">
       <button id="startShopBtn" class="start-action-btn" onclick="openShop()">🛍️ 商店</button>
@@ -118,7 +119,7 @@
               <th>玩家</th>
               <th>分數</th>
               <th>難度</th>
-              <th>用時 / 完成日期</th>
+              <th>時間</th>
             </tr>
           </thead>
           <tbody id="leaderboardTableBody"></tbody>
@@ -139,7 +140,10 @@
     <div style="max-width: 900px; margin: 20px auto; background: white; border-radius: 10px; padding: 30px;">
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
         <h2 style="margin: 0;">🛍️ 商店</h2>
-        <div style="font-size: 20px; font-weight: bold;">餘額: <span id="shopMoney">0</span></div>
+        <div style="display: flex; align-items: center; gap: 16px;">
+          <div style="font-size: 16px; color: #555;">最高分: <span id="shopHighScore">0</span></div>
+          <div style="font-size: 20px; font-weight: bold;">餘額: <span id="shopMoney">0</span></div>
+        </div>
         <button onclick="closeShop()" style="padding: 10px 20px; font-size: 16px; background: #ccc; border: none; border-radius: 5px; cursor: pointer;">關閉</button>
       </div>
       <div id="shopTabs" class="inventory-tabs"></div>
