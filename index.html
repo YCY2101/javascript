@@ -105,6 +105,7 @@
         <button class="close-btn" onclick="closeLeaderboard()">✕</button>
       </div>
 
+      <div id="leaderboardTabs" class="inventory-tabs"></div>
       <div id="leaderboardNotice" class="leaderboard-notice"></div>
       <div id="leaderboardLoading" class="empty-state" style="display: none;">排行榜讀取中...</div>
       <div id="leaderboardEmpty" class="empty-state" style="display: none;">目前還沒有分數，先搶第一名。</div>
@@ -123,6 +124,7 @@
           <tbody id="leaderboardTableBody"></tbody>
         </table>
       </div>
+      <div id="leaderboardPagination" class="pagination"></div>
 
       <div class="modal-actions bottom-actions">
         <button class="secondary-btn" onclick="loadLeaderboard()">重新整理</button>

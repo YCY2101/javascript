@@ -110,7 +110,8 @@ const difficulties = {
     minLen: 2,
     maxLen: 5,
     baseSpeed: 1.5,
-    baseSpawnRate: 3000
+    baseSpawnRate: 3000,
+    rewardMultiplier: 0.8
   },
   normal: {
     name: "中等",
@@ -120,7 +121,8 @@ const difficulties = {
     minLen: 5,
     maxLen: 8,
     baseSpeed: 2.5,
-    baseSpawnRate: 2000
+    baseSpawnRate: 2000,
+    rewardMultiplier: 1
   },
   hard: {
     name: "困難",
@@ -130,7 +132,8 @@ const difficulties = {
     minLen: 8,
     maxLen: 12,
     baseSpeed: 3.5,
-    baseSpawnRate: 1500
+    baseSpawnRate: 1500,
+    rewardMultiplier: 1.4
   },
   infinite: {
     name: "無限",
@@ -140,7 +143,8 @@ const difficulties = {
     minLen: 3,
     maxLen: 6,
     baseSpeed: 1.6,
-    baseSpawnRate: 2400
+    baseSpawnRate: 2400,
+    rewardMultiplier: 1.2
   }
 };
 
@@ -675,9 +679,12 @@ document.addEventListener("keydown", (e) => {
   if (caughtFishes.length > 0) {
     gameState.typed = "";
     const timeBonus = gameState.mode === 'timed' ? 1 + Math.floor(gameState.timeLeft / 10) : 1;
-    const pointsEarned = CONFIG.SCORE_POINTS * caughtFishes.length * timeBonus;
+    const baseMultiplier = currentDifficulty?.rewardMultiplier || 1;
+    const timeGrowth = gameState.mode === 'infinite' ? 1 + Math.floor(gameState.elapsedSeconds / 15) * 0.05 : 1;
+    const rewardMultiplier = baseMultiplier * timeGrowth;
+    const pointsEarned = Math.round(CONFIG.SCORE_POINTS * caughtFishes.length * timeBonus * rewardMultiplier);
     gameState.score += pointsEarned;
-    gameState.money += pointsEarned;  // 分數 = 金錢
+    gameState.money += pointsEarned;
     gameState.combo++;
     gameState.caughtFishCount += caughtFishes.length; // 累計釣到的魚數
 

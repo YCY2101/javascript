@@ -32,16 +32,30 @@ const LEADERBOARD_API = {
   async saveScore(playerData) {
     try {
       const scores = await this.getLeaderboard();
+      const duplicate = scores.find(entry =>
+        entry.playerName === playerData.playerName &&
+        entry.score === playerData.score &&
+        entry.difficulty === playerData.difficulty &&
+        entry.wordCount === playerData.wordCount
+      );
+
+      if (duplicate) {
+        return scores;
+      }
+
       scores.push({
-        ...playerData,
+        playerName: playerData.playerName,
+        score: playerData.score,
+        difficulty: playerData.difficulty,
+        wordCount: playerData.wordCount,
         timestamp: new Date().toISOString()
       });
       
       // 排序：分數從高到低
       scores.sort((a, b) => b.score - a.score);
       
-      // 只保留前100名
-      const topScores = scores.slice(0, 100);
+      // 只保留前1000名
+      const topScores = scores.slice(0, 1000);
       
       // 保存到本地存儲（作為主要存儲）
       localStorage.setItem('fishinGameLeaderboard', JSON.stringify(topScores));
@@ -67,6 +81,12 @@ const LEADERBOARD_API = {
     }
   }
 };
+
+let currentLeaderboard = [];
+let currentLeaderboardPage = 1;
+let currentLeaderboardDifficulty = '全部';
+const LEADERBOARD_PAGE_SIZE = 50;
+const LEADERBOARD_DIFFICULTIES = ['全部', '簡單', '中等', '困難', '無限'];
 
 /**
  * 顯示遊戲結束模態框
@@ -116,9 +136,24 @@ async function submitScore() {
   }
   
   // 驗證名字長度
-  if (playerName.length > 20) {
-    leaderboardStatus.innerText = '❌ 名字不能超過20個字符';
+  if (playerName.length > 50) {
+    leaderboardStatus.innerText = '❌ 名字不能超過50個字符';
     leaderboardStatus.style.color = '#ff6b6b';
+    return;
+  }
+
+  const existingScores = await LEADERBOARD_API.getLeaderboard();
+  const alreadySubmitted = existingScores.some(entry =>
+    entry.playerName === playerName &&
+    entry.score === gameState.score &&
+    entry.difficulty === (currentDifficulty?.name || '未知') &&
+    entry.wordCount === gameState.caughtFishCount
+  );
+
+  if (alreadySubmitted) {
+    leaderboardStatus.innerText = '❌ 已登記，無法重複登記相同分數';
+    leaderboardStatus.style.color = '#ff6b6b';
+    submitScoreBtn.disabled = false;
     return;
   }
   
@@ -130,8 +165,8 @@ async function submitScore() {
     const playerData = {
       playerName: playerName,
       score: gameState.score,
-      money: gameState.money,
       difficulty: currentDifficulty?.name || '未知',
+      duration: gameState.mode === 'infinite' ? gameState.elapsedSeconds : 60 - gameState.timeLeft,
       wordCount: gameState.caughtFishCount
     };
     
@@ -212,8 +247,116 @@ async function openLeaderboard() {
   
   leaderboardModal.style.display = 'flex';
   
+  currentLeaderboardDifficulty = '全部';
+  renderLeaderboardTabs();
+
   // 加載排行榜數據
   await loadLeaderboard();
+}
+
+async function displayLeaderboardPreview() {
+  await loadLeaderboard();
+}
+
+function renderLeaderboardTabs() {
+  const tabsContainer = document.getElementById('leaderboardTabs');
+  if (!tabsContainer) return;
+
+  tabsContainer.innerHTML = LEADERBOARD_DIFFICULTIES.map(label => {
+    const activeClass = currentLeaderboardDifficulty === label ? 'active' : '';
+    return `<button class="leaderboard-tab-btn ${activeClass}" onclick="selectLeaderboardDifficulty('${label}')">${label}</button>`;
+  }).join('');
+}
+
+function selectLeaderboardDifficulty(label) {
+  currentLeaderboardDifficulty = label;
+  currentLeaderboardPage = 1;
+  renderLeaderboardTabs();
+  renderLeaderboardPage(1);
+}
+
+function formatDuration(seconds) {
+  const mins = Math.floor(seconds / 60);
+  const secs = seconds % 60;
+  return `${mins}:${secs.toString().padStart(2, '0')}`;
+}
+
+function getFilteredLeaderboard() {
+  if (currentLeaderboardDifficulty === '全部') return currentLeaderboard;
+  return currentLeaderboard.filter(item => item.difficulty === currentLeaderboardDifficulty);
+}
+
+function getLeaderboardPageCount() {
+  const filtered = getFilteredLeaderboard();
+  return Math.max(1, Math.ceil(filtered.length / LEADERBOARD_PAGE_SIZE));
+}
+
+function renderLeaderboardPage(page = 1) {
+  const tableBody = document.getElementById('leaderboardTableBody');
+  const paginationContainer = document.getElementById('leaderboardPagination');
+  const emptyEl = document.getElementById('leaderboardEmpty');
+
+  const filtered = getFilteredLeaderboard();
+  const totalPages = Math.max(1, Math.ceil(filtered.length / LEADERBOARD_PAGE_SIZE));
+  currentLeaderboardPage = Math.min(Math.max(page, 1), totalPages);
+
+  const startIndex = (currentLeaderboardPage - 1) * LEADERBOARD_PAGE_SIZE;
+  const endIndex = startIndex + LEADERBOARD_PAGE_SIZE;
+  const pageItems = filtered.slice(startIndex, endIndex);
+
+  if (pageItems.length === 0) {
+    tableBody.innerHTML = '';
+    paginationContainer.innerHTML = '';
+    emptyEl.style.display = 'block';
+    return;
+  }
+
+  emptyEl.style.display = 'none';
+  tableBody.innerHTML = '';
+
+  pageItems.forEach((player, index) => {
+    const row = document.createElement('tr');
+    const globalIndex = startIndex + index;
+    const date = new Date(player.timestamp).toLocaleDateString('zh-TW');
+
+    row.innerHTML = `
+      <td>#${globalIndex + 1}</td>
+      <td>${player.playerName}</td>
+      <td style="color: #ff6b6b; font-weight: bold;">${player.score}</td>
+      <td>${player.difficulty || '未知'}</td>
+      <td style="font-size: 12px; color: #999;">${formatDuration(player.duration)}</td>
+    `;
+
+    tableBody.appendChild(row);
+  });
+
+  renderLeaderboardPagination();
+}
+
+function renderLeaderboardPagination() {
+  const paginationContainer = document.getElementById('leaderboardPagination');
+  if (!paginationContainer) return;
+
+  const totalPages = getLeaderboardPageCount();
+  const hasMultiplePages = totalPages > 1;
+
+  if (!hasMultiplePages) {
+    paginationContainer.innerHTML = '';
+    return;
+  }
+
+  const prevDisabled = currentLeaderboardPage === 1 ? 'disabled' : '';
+  const nextDisabled = currentLeaderboardPage === totalPages ? 'disabled' : '';
+
+  paginationContainer.innerHTML = `
+    <button class="pagination-btn" onclick="changeLeaderboardPage(${currentLeaderboardPage - 1})" ${prevDisabled}>上一頁</button>
+    <span class="pagination-info">第 ${currentLeaderboardPage} 頁 / 共 ${totalPages} 頁</span>
+    <button class="pagination-btn" onclick="changeLeaderboardPage(${currentLeaderboardPage + 1})" ${nextDisabled}>下一頁</button>
+  `;
+}
+
+function changeLeaderboardPage(page) {
+  renderLeaderboardPage(page);
 }
 
 /**
@@ -237,29 +380,18 @@ async function loadLeaderboard() {
     loadingEl.style.display = 'none';
     
     if (leaderboard.length === 0) {
+      currentLeaderboard = [];
+      currentLeaderboardPage = 1;
       emptyEl.style.display = 'block';
       tableBody.innerHTML = '';
+      renderLeaderboardPagination();
       return;
     }
     
-    emptyEl.style.display = 'none';
-    tableBody.innerHTML = '';
-    
-    // 顯示排行榜
-    leaderboard.forEach((player, index) => {
-      const row = document.createElement('tr');
-      const date = new Date(player.timestamp).toLocaleDateString('zh-TW');
-      
-      row.innerHTML = `
-        <td>#${index + 1}</td>
-        <td>${player.playerName}</td>
-        <td style="color: #ff6b6b; font-weight: bold;">${player.score}</td>
-        <td>${player.difficulty || '未知'}</td>
-        <td style="font-size: 12px; color: #999;">${date}</td>
-      `;
-      
-      tableBody.appendChild(row);
-    });
+    currentLeaderboard = leaderboard;
+    currentLeaderboardPage = 1;
+    renderLeaderboardTabs();
+    renderLeaderboardPage(1);
     
   } catch (error) {
     console.error('❌ 加載排行榜失敗:', error);

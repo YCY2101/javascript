@@ -498,9 +498,10 @@ body::before {
   background: rgba(0, 0, 0, 0.7);
   display: flex;
   justify-content: center;
-  align-items: center;
-  padding: 20px;
+  align-items: flex-start;
+  padding: 20px 20px 40px;
   z-index: 2000;
+  overflow-y: auto;
 }
 
 .modal-card {
@@ -562,7 +563,8 @@ body::before {
   margin-bottom: 20px;
 }
 
-.inventory-tab-btn {
+.inventory-tab-btn,
+.leaderboard-tab-btn {
   border: none;
   border-radius: 999px;
   padding: 10px 18px;
@@ -573,11 +575,13 @@ body::before {
   transition: transform 0.2s ease, background-color 0.2s ease;
 }
 
-.inventory-tab-btn:hover {
+.inventory-tab-btn:hover,
+.leaderboard-tab-btn:hover {
   transform: translateY(-1px);
 }
 
-.inventory-tab-btn.active {
+.inventory-tab-btn.active,
+.leaderboard-tab-btn.active {
   background: #0d1f3c;
   color: #ffffff;
 }
@@ -701,6 +705,8 @@ body::before {
    ========================================== */
 .leaderboard-card {
   max-width: 900px;
+  max-height: calc(100vh - 80px);
+  overflow: hidden;
 }
 
 .leaderboard-notice {
@@ -715,7 +721,38 @@ body::before {
 
 .table-scroll {
   overflow-x: auto;
+  overflow-y: auto;
   margin: 16px 0;
+  max-height: 520px;
+  display: block;
+}
+
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
+}
+
+.pagination-btn {
+  border: none;
+  border-radius: 8px;
+  padding: 8px 14px;
+  cursor: pointer;
+  background: #0d1f3c;
+  color: #fff;
+  transition: background-color 0.2s ease;
+}
+
+.pagination-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.pagination-info {
+  color: #0d1f3c;
+  font-weight: 700;
 }
 
 .leaderboard-table,
