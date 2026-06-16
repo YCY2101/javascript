@@ -44,10 +44,7 @@ const LEADERBOARD_API = {
       }
 
       scores.push({
-        playerName: playerData.playerName,
-        score: playerData.score,
-        difficulty: playerData.difficulty,
-        wordCount: playerData.wordCount,
+        ...playerData,
         timestamp: new Date().toISOString()
       });
       
@@ -166,8 +163,11 @@ async function submitScore() {
       playerName: playerName,
       score: gameState.score,
       difficulty: currentDifficulty?.name || '未知',
-      duration: gameState.mode === 'infinite' ? gameState.elapsedSeconds : 60 - gameState.timeLeft,
-      wordCount: gameState.caughtFishCount
+      wordCount: gameState.caughtFishCount,
+      timestamp: new Date().toISOString(),
+      ...(gameState.mode === 'infinite'
+        ? { duration: gameState.elapsedSeconds }
+        : { finishedAt: new Date().toISOString() })
     };
     
     // 保存分數
@@ -281,6 +281,16 @@ function formatDuration(seconds) {
   return `${mins}:${secs.toString().padStart(2, '0')}`;
 }
 
+function formatDate(dateString) {
+  const date = new Date(dateString);
+  if (Number.isNaN(date.getTime())) return '-';
+  return date.toLocaleDateString('zh-TW', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  });
+}
+
 function getFilteredLeaderboard() {
   if (currentLeaderboardDifficulty === '全部') return currentLeaderboard;
   return currentLeaderboard.filter(item => item.difficulty === currentLeaderboardDifficulty);
@@ -317,14 +327,18 @@ function renderLeaderboardPage(page = 1) {
   pageItems.forEach((player, index) => {
     const row = document.createElement('tr');
     const globalIndex = startIndex + index;
-    const date = new Date(player.timestamp).toLocaleDateString('zh-TW');
+    const timeCell = player.duration != null
+      ? formatDuration(player.duration)
+      : (player.finishedAt || player.timestamp)
+        ? formatDate(player.finishedAt || player.timestamp)
+        : '-';
 
     row.innerHTML = `
       <td>#${globalIndex + 1}</td>
       <td>${player.playerName}</td>
       <td style="color: #ff6b6b; font-weight: bold;">${player.score}</td>
       <td>${player.difficulty || '未知'}</td>
-      <td style="font-size: 12px; color: #999;">${formatDuration(player.duration)}</td>
+      <td style="font-size: 12px; color: #999;">${timeCell}</td>
     `;
 
     tableBody.appendChild(row);
