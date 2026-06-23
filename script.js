@@ -96,6 +96,7 @@ const gameState = {
   lives: 3,
   elapsedSeconds: 0,
   mode: 'timed',
+  difficultyKey: 'easy',
   isRunning: false,
   isPaused: false,
   spawnInterval: null,
@@ -109,29 +110,29 @@ const shopItems = [
   { id: 'rod1', name: '普通釣竿', category: '釣竿', price: 0, image: '釣竿/釣竿.png' },
   { id: 'rod2', name: '釣竿1', category: '釣竿', price: 200, image: '釣竿/釣竿1.png' },
   { id: 'rod4', name: '麥塊釣竿', category: '釣竿', price: 400, image: '釣竿/麥塊釣竿.png' },
-  { id: 'rod8', name: '企鵝釣竿', category: '釣竿', price: 600, image: '釣竿/企鵝釣竿.png', unlockScore: 80 },
-  { id: 'rod9', name: '你爺爺的釣竿', category: '釣竿', price: 6767, image: '釣竿/你爺爺的釣竿.png', unlockScore: 1000  },
-  { id: 'rod10', name: '道士釣竿', category: '釣竿', price: 1000, image: '釣竿/道士釣竿.png', unlockScore: 100  },
-  { id: 'rod11', name: '高冷女神釣竿', category: '釣竿', price: 1100, image: '釣竿/高冷女神釣竿.png', unlockScore: 220  },
-  { id: 'rod12', name: '龍焰釣竿', category: '釣竿', price: 1200, image: '釣竿/龍焰釣竿.png', unlockScore: 250  },
-  { id: 'rod3', name: '胡蘿蔔釣竿', category: '釣竿', price: 2500, image: '釣竿/胡蘿蔔釣竿.png', unlockScore: 300 },
-  { id: 'rod6', name: 'RGB釣竿', category: '釣竿', price: 3000, image: '釣竿/RGB釣竿.png', unlockScore: 380 },
-  { id: 'rod5', name: '幸運釣竿', category: '釣竿', price: 4500, image: '釣竿/幸運釣竿.png', unlockScore: 420 },
-  { id: 'rod7', name: '亞特蘭提斯釣竿', category: '釣竿', price: 7000, image: '釣竿/亞特蘭提斯釣竿.png', unlockScore: 1200 },
+  { id: 'rod8', name: '企鵝釣竿', category: '釣竿', price: 600, image: '釣竿/企鵝釣竿.png', unlockScore: 100 },
+  { id: 'rod9', name: '你爺爺的釣竿', category: '釣竿', price: 6767, image: '釣竿/你爺爺的釣竿.png', unlockScore: 500  },
+  { id: 'rod10', name: '道士釣竿', category: '釣竿', price: 1000, image: '釣竿/道士釣竿.png', unlockScore: 150  },
+  { id: 'rod11', name: '高冷女神釣竿', category: '釣竿', price: 1100, image: '釣竿/高冷女神釣竿.png', unlockScore: 270 },
+  { id: 'rod12', name: '龍焰釣竿', category: '釣竿', price: 1200, image: '釣竿/龍焰釣竿.png', unlockScore: 300  },
+  { id: 'rod3', name: '胡蘿蔔釣竿', category: '釣竿', price: 2500, image: '釣竿/胡蘿蔔釣竿.png', unlockScore: 320 },
+  { id: 'rod6', name: 'RGB釣竿', category: '釣竿', price: 3000, image: '釣竿/RGB釣竿.png', unlockScore: 450},
+  { id: 'rod5', name: '幸運釣竿', category: '釣竿', price: 4500, image: '釣竿/幸運釣竿.png', unlockScore: 520 },
+  { id: 'rod7', name: '亞特蘭提斯釣竿', category: '釣竿', price: 7000, image: '釣竿/亞特蘭提斯釣竿.png', unlockScore:600 },
   
   { id: 'char0', name: '魚夫', category: '人物', price: 0, image: '漁夫/魚夫.png' },
-  { id: 'char10', name: '街女版漁夫', category: '人物', price: 650, image: '漁夫/街女版漁夫.png' },
-  { id: 'char1', name: '兔迪井莞漁夫', category: '人物', price: 700, image: '漁夫/兔迪井莞漁夫.png' },
-  { id: 'char5', name: '年輕版漁夫', category: '人物', price: 720, image: '漁夫/年輕版漁夫.png' },
-  { id: 'char8', name: '緝棄企鵝版漁夫', category: '人物', price: 730, image: '漁夫/緝棄企鵝版漁夫.png' },
-  { id: 'char4', name: '大帥哥版漁夫', category: '人物', price: 760, image: '漁夫/大帥哥版漁夫.png' },
-  { id: 'char9', name: '艾里克斯版漁夫', category: '人物', price: 780, image: '漁夫/艾里克斯版漁夫.png' },
-  { id: 'char7', name: '狐狸客漁夫', category: '人物', price: 820, image: '漁夫/狐狸客漁夫.png' },
-  { id: 'char2', name: '冷靜的貓漁夫', category: '人物', price: 850, image: '漁夫/冷靜的貓漁夫.png' },
-  { id: 'char12', name: '麥塊路人版漁夫', category: '人物', price: 880, image: '漁夫/麥塊路人版漁夫.png' },
-  { id: 'char3', name: '史蒂夫版漁夫', category: '人物', price: 2200, image: '漁夫/史蒂夫版漁夫.png', unlockScore: 360 },
-  { id: 'char11', name: '麥塊綠色村民魚夫', category: '人物', price: 5000, image: '漁夫/麥塊綠色村民魚夫.png', unlockScore: 420 },
-  { id: 'char6', name: '浙一昇孤獨的狼漁夫', category: '人物', price: 10000, image: '漁夫/浙一昇孤獨的狼漁夫.png', unlockScore: 480 },
+  { id: 'char10', name: '街女版漁夫', category: '人物', price: 100, image: '漁夫/街女版漁夫.png', unlockScore: 60},
+  { id: 'char1', name: '兔迪井莞漁夫', category: '人物', price: 220, image: '漁夫/兔迪井莞漁夫.png', unlockScore: 150 },
+  { id: 'char5', name: '年輕版漁夫', category: '人物', price: 80, image: '漁夫/年輕版漁夫.png', unlockScore:50 },
+  { id: 'char8', name: '緝棄企鵝版漁夫', category: '人物', price: 300, image: '漁夫/緝棄企鵝版漁夫.png', unlockScore: 180},
+  { id: 'char4', name: '大帥哥版漁夫', category: '人物', price: 5000, image: '漁夫/大帥哥版漁夫.png', unlockScore: 400},
+  { id: 'char9', name: '艾里克斯版漁夫', category: '人物', price: 200, image: '漁夫/艾里克斯版漁夫.png', unlockScore:140 },
+  { id: 'char7', name: '狐狸客漁夫', category: '人物', price: 220, image: '漁夫/狐狸客漁夫.png', unlockScore:150 },
+  { id: 'char2', name: '冷靜的貓漁夫', category: '人物', price: 280, image: '漁夫/冷靜的貓漁夫.png', unlockScore:170 },
+  { id: 'char12', name: '麥塊路人版漁夫', category: '人物', price: 400, image: '漁夫/麥塊路人版漁夫.png', unlockScore:200 },
+  { id: 'char3', name: '史蒂夫版漁夫', category: '人物', price: 500, image: '漁夫/史蒂夫版漁夫.png', unlockScore: 250 },
+  { id: 'char11', name: '麥塊綠色村民魚夫', category: '人物', price: 20, image: '漁夫/麥塊綠色村民魚夫.png', unlockScore: 10},
+  { id: 'char6', name: '浙一昇孤獨的狼漁夫', category: '人物', price: 10000, image: '漁夫/浙一昇孤獨的狼漁夫.png', unlockScore:500  },
 ];
 
 // ==========================================
@@ -211,26 +212,50 @@ const CONFIG = {
   INFINITE_MAX_LETTER: 18
 };
 
-// 🐟 魚的圖片列表
-const fishImages = [
-  "魚/魚.png",
-  "魚/菜市場魚.png",
-  "魚/蒼龍.png",
-  "魚/銀龍魚.png",
-  "魚/丑得曜亖魚.png",
-  "魚/中狗古文明魚.png",
-  "魚/亮食昵魚.png",
-  "魚/可愛大眼魚.png",
-  "魚/泥椰椰時代的魚.png",
-  "魚/珍珠魚.png",
-  "魚/瞅布拉基魚.png",
-  "魚/藍寶堅魚.png",
-  "魚/蘭水晶魚.png",
-  "魚/貞茱迺查魚.png",
-  "魚/貳滴魚.png",
-  "魚/霓虹魚.png",
-  "魚/餓魚.png"
-];
+// 🐟 魚的圖片列表（依難度分類）
+const fishImagesByMode = {
+  easy: [
+    "魚/簡單魚/可愛大眼魚.png",
+    "魚/簡單魚/珍珠魚.png",
+    "魚/簡單魚/貳滴魚.png"
+  ],
+  normal: [
+    "魚/中等魚/菜市場魚.png",
+    "魚/中等魚/藍寶堅魚.png",
+    "魚/中等魚/貞茱迺查魚.png",
+    "魚/中等魚/餓魚.png",
+    "魚/中等魚/魚.png"
+  ],
+  hard: [
+    "魚/困難魚/中狗古文明魚.png",
+    "魚/困難魚/泥椰椰時代的魚.png",
+    "魚/困難魚/蘭水晶魚.png",
+    "魚/困難魚/銀龍魚.png",
+    "魚/困難魚/霓虹魚.png"
+  ],
+  insane: [
+    "魚/變態/丑得曜亖魚.png",
+    "魚/變態/亮食昵魚.png",
+    "魚/變態/瞅布拉基魚.png",
+    "魚/變態/蒼龍.png"
+  ]
+};
+
+function getInfiniteFishPool() {
+  const pool = [...fishImagesByMode.easy];
+
+  if (gameState.elapsedSeconds >= 20) {
+    pool.push(...fishImagesByMode.normal);
+  }
+  if (gameState.elapsedSeconds >= 40) {
+    pool.push(...fishImagesByMode.hard);
+  }
+  if (gameState.elapsedSeconds >= 60) {
+    pool.push(...fishImagesByMode.insane);
+  }
+
+  return pool;
+}
 
 // ==========================================
 // 🛠️ 工具函數
@@ -240,7 +265,15 @@ const fishImages = [
  * 隨機選擇魚的圖片
  */
 function randomFish() {
-  return fishImages[Math.floor(Math.random() * fishImages.length)];
+  let pool;
+
+  if (gameState.mode === 'infinite') {
+    pool = getInfiniteFishPool();
+  } else {
+    pool = fishImagesByMode[gameState.difficultyKey] || fishImagesByMode.easy;
+  }
+
+  return pool[Math.floor(Math.random() * pool.length)];
 }
 
 /**
@@ -263,9 +296,9 @@ function updateUI() {
   const timeSuffix = document.getElementById('timeSuffix');
 
   if (gameState.mode === 'infinite') {
-    timeLabel.innerText = 'Lives';
-    timeEl.innerText = gameState.lives;
-    timeSuffix.innerText = '';
+    timeLabel.innerText = `Lives: ${gameState.lives} | Time`;
+    timeEl.innerText = gameState.elapsedSeconds;
+    timeSuffix.innerText = 's';
   } else {
     timeLabel.innerText = 'Time';
     timeEl.innerText = gameState.timeLeft;
@@ -413,11 +446,13 @@ function renderShopItems() {
       : item.price === 0
       ? '免費'
       : '購買';
-    const buttonClass = isOwned || isLocked
+    const buttonClass = isOwned
+      ? 'shop-item-button owned'
+      : isLocked
       ? 'shop-item-button unavailable'
       : `shop-item-button ${canBuy ? 'buyable' : 'unavailable'}`;
     const disabledAttr = (!canBuy || isOwned || isLocked) ? 'disabled' : '';
-    const unlockText = item.unlockScore ? `<div class="shop-item-unlock">需 ${item.unlockScore} 分解鎖</div>` : '';
+    const unlockText = item.unlockScore && isLocked ? `<div class="shop-item-unlock">需 ${item.unlockScore} 分解鎖</div>` : '';
 
     const imageMarkup = item.image ? `<img class="shop-item-image" src="${item.image}" alt="${item.name}">` : `<div class="shop-item-icon">${item.emoji || ''}</div>`;
     itemDiv.innerHTML = `
@@ -995,6 +1030,7 @@ function startGame(difficultyLevel = 'easy') {
   ensureDefaultInventory();
   gameState.isRunning = true;
   gameState.mode = difficultyLevel === 'infinite' ? 'infinite' : 'timed';
+  gameState.difficultyKey = difficultyLevel;
   gameState.timeLeft = gameState.mode === 'timed' ? 60 : 0;
   gameState.lives = gameState.mode === 'infinite' ? 3 : 0;
   gameState.elapsedSeconds = 0;

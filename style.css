@@ -475,6 +475,11 @@ body::before {
   cursor: not-allowed;
 }
 
+.shop-item-button.owned {
+  background: #FF9800;
+  cursor: default;
+}
+
 .shop-item-button.disabled {
   background: #888888;
   cursor: not-allowed;
