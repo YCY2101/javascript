@@ -14,6 +14,14 @@ const rod = document.getElementById("rod");
 // ==========================================
 // 💾 本地存儲管理
 // ==========================================
+function resetPersistentGameData() {
+  localStorage.setItem('fishinGameMoney', '0');
+  localStorage.setItem('fishinGameHighScore', '0');
+  localStorage.removeItem('fishinGameLeaderboard');
+}
+
+resetPersistentGameData();
+
 const StorageManager = {
   getMoney: () => parseInt(localStorage.getItem('fishinGameMoney')) || 0,
   setMoney: (amount) => localStorage.setItem('fishinGameMoney', amount),
