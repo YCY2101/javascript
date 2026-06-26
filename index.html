@@ -15,6 +15,8 @@
     <div id="startMoneyBox">💵 餘額: <span id="startMoney">0</span></div>
     <div id="startHighScoreBox">🏅 最高分: <span id="startHighScore">0</span></div>
 
+    <button id="authBtn" class="auth-top-btn" onclick="openAuthModal()">🔐 登入/註冊</button>
+
     <div id="startTopButtons">
       <button id="startShopBtn" class="start-action-btn" onclick="openShop()">🛍️ 商店</button>
       <button id="startInventoryBtn" class="start-action-btn" onclick="openInventory()">🎒 背包</button>
@@ -120,6 +122,7 @@
               <th>分數</th>
               <th>難度</th>
               <th>用時／完成日期</th>
+              <th>操作</th>
             </tr>
           </thead>
           <tbody id="leaderboardTableBody"></tbody>
@@ -171,11 +174,83 @@
     </div>
   </div>
 
+  <!-- � 登入/註冊視窗 -->
+  <div id="authModal" class="modal-screen" style="display: none;">
+    <div class="modal-card" style="max-width: 520px;">
+      <div class="modal-header">
+        <div>
+          <h2>🔐 登入 / 註冊</h2>
+          <p class="muted-text">不登入也可以直接玩，登入後可管理自己的排行榜資料。</p>
+        </div>
+        <button class="close-btn" onclick="closeAuthModal()">✕</button>
+      </div>
+
+      <div class="auth-tabs">
+        <button class="auth-tab active" data-mode="login" onclick="switchAuthMode('login')">登入</button>
+        <button class="auth-tab" data-mode="register" onclick="switchAuthMode('register')">註冊</button>
+      </div>
+
+      <div id="authMessage" class="auth-message"></div>
+
+      <div id="authLoginPanel" style="display: block;">
+        <form id="loginForm" onsubmit="event.preventDefault(); submitAuthForm();">
+          <label>名字</label>
+          <input id="loginName" type="text" required placeholder="請輸入名字" required>
+          <label>密碼</label>
+          <input id="loginPassword" type="password" placeholder="請輸入密碼" required>
+          <button class="primary-btn" type="submit">登入</button>
+        </form>
+      </div>
+
+      <div id="authRegisterPanel" style="display: none;">
+        <form id="registerForm" onsubmit="event.preventDefault(); submitAuthForm();">
+          <label>名字</label>
+          <input id="registerName" type="text" placeholder="請輸入名字" required>
+          <label>密碼（至少 8 碼）</label>
+          <input id="registerPassword" type="password" placeholder="請輸入密碼" required>
+          <label>確認密碼</label>
+          <input id="registerConfirmPassword" type="password" placeholder="請輸入確認密碼" required>
+          <button class="primary-btn" type="submit">註冊</button>
+        </form>
+      </div>
+
+      <div id="authUserPanel" style="display: none; margin-top: 18px;">
+        <div class="auth-user-card">
+          <div style="font-weight: bold;" id="authUserName"></div>
+          <div style="color: #666; font-size: 14px;" id="authUserEmail"></div>
+          <div id="authStatusLabel" style="margin-top: 6px; color: #0d1f3c;"></div>
+          <div class="modal-actions" style="justify-content: flex-start; margin-top: 12px;">
+            <button class="secondary-btn" onclick="logoutUser()">登出</button>
+            <button class="secondary-btn" style="background-color: #cc4444; margin-left: 8px;" onclick="deleteAccount()">註銷帳號</button>
+          </div>
+
+          <div id="adminPanel" style="display: none; margin-top: 16px; padding-top: 12px; border-top: 1px solid #ddd;">
+            <div style="font-weight: bold; color: #b8860b; margin-bottom: 8px;">🔧 管理員模式</div>
+            <div style="display: flex; gap: 8px; margin-bottom: 8px;">
+              <input id="adminMoneyInput" type="number" placeholder="更新金額" style="flex: 1; padding: 8px;">
+              <button class="primary-btn" onclick="updateAdminMoney()">更新金額</button>
+            </div>
+            <div style="display: flex; gap: 8px; margin-bottom: 8px;">
+              <input id="adminScoreInput" type="number" placeholder="更新分數" style="flex: 1; padding: 8px;">
+              <button class="primary-btn" onclick="updateAdminScore()">更新分數</button>
+            </div>
+            <div class="modal-actions" style="justify-content: flex-start; margin-top: 12px;">
+              <button class="secondary-btn" onclick="clearAllLeaderboardEntries()">清空排行榜</button>
+              <button class="secondary-btn" style="margin-left: 8px;" onclick="adminResetInventoryState()">清空背包</button>
+              <button class="secondary-btn" style="margin-left: 8px;" onclick="adminResetShopState()">清空商店</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- 🔊 音效 -->
   <audio id="hitSound" src="https://www.soundjay.com/button/beep-07.wav"></audio>
 
   <!-- 📜 腳本 -->
   <script src="script.js"></script>
   <script src="leaderboard.js"></script>
+  <script src="auth.js"></script>
 </body>
 </html>

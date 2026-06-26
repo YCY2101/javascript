@@ -122,6 +122,21 @@ function showGameOverModal() {
   
   // 聚焦於輸入框
   playerNameInput.focus();
+  
+  // 移除舊的 Enter 鍵監聽
+  playerNameInput.removeEventListener('keypress', handlePlayerNameKeypress);
+  
+  // 添加 Enter 鍵提交
+  playerNameInput.addEventListener('keypress', handlePlayerNameKeypress);
+}
+
+/**
+ * 處理玩家名稱輸入框的 Enter 鍵
+ */
+function handlePlayerNameKeypress(e) {
+  if (e.key === 'Enter') {
+    submitScore();
+  }
 }
 
 /**
@@ -132,10 +147,11 @@ async function submitScore() {
   const playerName = playerNameInput.value.trim();
   const leaderboardStatus = document.getElementById('leaderboardStatus');
   const submitScoreBtn = document.getElementById('submitScoreBtn');
+  const currentUser = window.getCurrentUser ? window.getCurrentUser() : null;
   
   // 驗證名字不為空
   if (playerName === '') {
-    leaderboardStatus.innerText = '❌ 請輸入玩家名稱';
+    leaderboardStatus.innerText = '❌ 尚未輸入名字';
     leaderboardStatus.style.color = '#ff6b6b';
     return;
   }
@@ -147,6 +163,32 @@ async function submitScore() {
     return;
   }
 
+  // 檢查名字是否已被使用
+  const leaderboard = JSON.parse(localStorage.getItem('fishinGameLeaderboard') || '[]');
+  const existingEntry = leaderboard.find(entry => entry.playerName === playerName);
+  
+  if (existingEntry) {
+    // 如果登入了，檢查是否是自己的名字
+    if (currentUser && existingEntry.ownerId === currentUser.id) {
+      const shouldOverwrite = confirm(`名字 "${playerName}" 已被您使用過，是否覆蓋舊記錄？`);
+      if (!shouldOverwrite) {
+        leaderboardStatus.innerText = '❌ 未覆蓋舊記錄，無法登記';
+        leaderboardStatus.style.color = '#ff6b6b';
+        return;
+      }
+      // 刪除舊記錄
+      const oldEntryIndex = leaderboard.findIndex(e => e.playerName === playerName && e.ownerId === currentUser.id);
+      if (oldEntryIndex !== -1) {
+        leaderboard.splice(oldEntryIndex, 1);
+        localStorage.setItem('fishinGameLeaderboard', JSON.stringify(leaderboard));
+      }
+    } else {
+      // 名字被其他人使用過
+      leaderboardStatus.innerText = '❌ 已有相同名字';
+      leaderboardStatus.style.color = '#ff6b6b';
+      return;
+    }
+  }
   
   leaderboardStatus.innerText = '⏳ 登記中...';
   leaderboardStatus.style.color = '#999';
@@ -154,17 +196,23 @@ async function submitScore() {
   
   try {
     const playerData = {
+      id: `entry_${Date.now()}`,
       playerName: playerName,
       score: gameState.score,
       difficulty: currentDifficulty?.name || '未知',
       mode: gameState.mode,
       duration: gameState.mode === 'infinite' ? gameState.elapsedSeconds : null,
       finishedAt: new Date().toISOString(),
-      wordCount: gameState.caughtFishCount
+      wordCount: gameState.caughtFishCount,
+      ownerId: currentUser ? currentUser.id : null
     };
     
     // 保存分數
     const saveResult = await LEADERBOARD_API.saveScore(playerData);
+
+    if (currentUser && window.saveUserScoreEntry) {
+      window.saveUserScoreEntry(playerData);
+    }
 
     if (saveResult.duplicate) {
       leaderboardStatus.innerText = '❌ 已登記，無法重複登記相同分數';
@@ -305,6 +353,7 @@ function renderLeaderboardPage(page = 1) {
   const tableBody = document.getElementById('leaderboardTableBody');
   const paginationContainer = document.getElementById('leaderboardPagination');
   const emptyEl = document.getElementById('leaderboardEmpty');
+  const currentUser = window.getCurrentUser ? window.getCurrentUser() : null;
 
   const filtered = getFilteredLeaderboard();
   const totalPages = Math.max(1, Math.ceil(filtered.length / LEADERBOARD_PAGE_SIZE));
@@ -335,12 +384,18 @@ function renderLeaderboardPage(page = 1) {
           ? formatDate(player.timestamp)
           : '-';
 
+    const isOwnEntry = currentUser && player.ownerId === currentUser.id;
+    const deleteBtn = isOwnEntry
+      ? `<button class="secondary-btn" style="padding: 4px 10px; font-size: 12px;" onclick="deleteLeaderboardEntry('${player.id}')">刪除</button>`
+      : '';
+
     row.innerHTML = `
       <td>#${globalIndex + 1}</td>
       <td>${player.playerName}</td>
       <td style="color: #ff6b6b; font-weight: bold;">${player.score}</td>
       <td>${player.difficulty || '未知'}</td>
       <td style="font-size: 12px; color: #999;">${timeCell}</td>
+      <td>${deleteBtn}</td>
     `;
 
     tableBody.appendChild(row);
@@ -383,6 +438,42 @@ function closeLeaderboard() {
 }
 
 /**
+ * 刪除排行榜記錄
+ */
+function deleteLeaderboardEntry(entryId) {
+  if (!confirm('確定要刪除此記錄嗎？')) return;
+
+  const currentUser = window.getCurrentUser ? window.getCurrentUser() : null;
+  if (!currentUser) {
+    alert('請先登入。');
+    return;
+  }
+
+  const leaderboard = JSON.parse(localStorage.getItem('fishinGameLeaderboard') || '[]');
+  const entryIndex = leaderboard.findIndex(item => item.id === entryId);
+  if (entryIndex === -1) {
+    alert('找不到此記錄。');
+    return;
+  }
+
+  const entry = leaderboard[entryIndex];
+  if (entry.ownerId !== currentUser.id) {
+    alert('只能刪除自己的記錄。');
+    return;
+  }
+
+  leaderboard.splice(entryIndex, 1);
+  localStorage.setItem('fishinGameLeaderboard', JSON.stringify(leaderboard));
+
+  if (window.deleteUserScoreEntry) {
+    window.deleteUserScoreEntry(entryId);
+  }
+
+  currentLeaderboard = currentLeaderboard.filter(item => item.id !== entryId);
+  renderLeaderboardPage(currentLeaderboardPage);
+}
+
+/**
  * 加載並顯示排行榜
  */
 async function loadLeaderboard() {
@@ -420,6 +511,7 @@ async function loadLeaderboard() {
 /**
  * 外部點擊關閉排行榜模態框
  */
+window.deleteLeaderboardEntry = deleteLeaderboardEntry;
 window.addEventListener('click', (e) => {
   const leaderboardModal = document.getElementById('leaderboardModal');
   if (e.target === leaderboardModal) {

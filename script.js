@@ -17,14 +17,66 @@ const rod = document.getElementById("rod");
 function resetPersistentGameData() {
   localStorage.setItem('fishinGameMoney', '0');
   localStorage.setItem('fishinGameHighScore', '0');
-  localStorage.removeItem('fishinGameLeaderboard');
+  localStorage.setItem('fishinGameOwnedItems', JSON.stringify([]));
+  localStorage.setItem('fishinGameEquippedItems', JSON.stringify({}));
+  syncGameStateFromStorage();
 }
 
-resetPersistentGameData();
+function syncGameStateFromStorage() {
+  if (typeof gameState !== 'undefined') {
+    gameState.money = StorageManager.getMoney();
+    gameState.highScore = StorageManager.getHighScore();
+  }
+  if (window.updateGameDisplay) {
+    window.updateGameDisplay();
+  }
+}
+
+window.syncGameStateFromStorage = syncGameStateFromStorage;
+
+function resetInventoryState() {
+  localStorage.setItem('fishinGameOwnedItems', JSON.stringify([]));
+  localStorage.setItem('fishinGameEquippedItems', JSON.stringify({}));
+  if (window.updateGameDisplay) {
+    window.updateGameDisplay();
+  }
+  if (window.renderInventoryItems) {
+    window.renderInventoryItems();
+  }
+  if (window.renderInventoryTabs) {
+    window.renderInventoryTabs();
+  }
+  if (window.renderShopItems) {
+    window.renderShopItems();
+  }
+  if (window.updatePlayerAppearance) {
+    window.updatePlayerAppearance();
+  }
+}
+
+function resetShopState() {
+  StorageManager.setMoney(0);
+  StorageManager.setHighScore(0);
+  syncGameStateFromStorage();
+  if (window.renderShopItems) {
+    window.renderShopItems();
+  }
+}
+
+window.resetPersistentGameData = resetPersistentGameData;
+window.resetInventoryState = resetInventoryState;
+window.resetShopState = resetShopState;
 
 const StorageManager = {
   getMoney: () => parseInt(localStorage.getItem('fishinGameMoney')) || 0,
-  setMoney: (amount) => localStorage.setItem('fishinGameMoney', amount),
+  setMoney: (amount) => {
+    const value = parseInt(amount, 10) || 0;
+    localStorage.setItem('fishinGameMoney', String(value));
+    if (typeof gameState !== 'undefined') {
+      gameState.money = value;
+    }
+    window.dispatchEvent(new Event('moneyUpdated'));
+  },
   addMoney: (amount) => {
     const current = StorageManager.getMoney();
     StorageManager.setMoney(current + amount);
@@ -45,7 +97,14 @@ const StorageManager = {
     }
   },
   getHighScore: () => parseInt(localStorage.getItem('fishinGameHighScore')) || 0,
-  setHighScore: (score) => localStorage.setItem('fishinGameHighScore', score),
+  setHighScore: (score) => {
+    const value = parseInt(score, 10) || 0;
+    localStorage.setItem('fishinGameHighScore', String(value));
+    if (typeof gameState !== 'undefined') {
+      gameState.highScore = value;
+    }
+    window.dispatchEvent(new Event('highScoreUpdated'));
+  },
   updateHighScore: (score) => {
     const current = StorageManager.getHighScore();
     if (score > current) {
@@ -110,6 +169,26 @@ const gameState = {
   spawnInterval: null,
   timerInterval: null
 };
+
+/**
+ * 更新遊戲顯示元素
+ */
+function updateGameDisplay() {
+  if (document.getElementById('startMoney')) {
+    document.getElementById('startMoney').innerText = StorageManager.getMoney();
+  }
+  if (document.getElementById('startHighScore')) {
+    document.getElementById('startHighScore').innerText = StorageManager.getHighScore();
+  }
+  if (document.getElementById('shopMoney')) {
+    document.getElementById('shopMoney').innerText = StorageManager.getMoney();
+  }
+  if (document.getElementById('shopHighScore')) {
+    document.getElementById('shopHighScore').innerText = StorageManager.getHighScore();
+  }
+}
+
+window.updateGameDisplay = updateGameDisplay;
 
 // ==========================================
 // 🛍️ 商店物品
@@ -786,44 +865,83 @@ document.addEventListener("keydown", (e) => {
   // 處理退格鍵
   if (e.key === "Backspace") {
     gameState.typed = gameState.typed.slice(0, -1);
+  } else if (e.key === "Enter") {
+    // 按 Enter 檢查單詞
+    if (gameState.typed.trim() === "") {
+      return;
+    }
+
+    const caughtFishes = [];
+    document.querySelectorAll(".fish").forEach(fish => {
+      if (gameState.typed === fish.dataset.word) {
+        caughtFishes.push(fish);
+      }
+    });
+
+    if (caughtFishes.length > 0) {
+      // 成功擊中魚
+      gameState.typed = "";
+      input.classList.remove('input-error');
+      input.style.animation = "none";
+
+      const timeBonus = gameState.mode === 'timed' ? 1 + Math.floor(gameState.timeLeft / 10) : 1;
+      const baseMultiplier = currentDifficulty?.rewardMultiplier || 1;
+      const timeGrowth = gameState.mode === 'infinite' ? 1 + Math.floor(gameState.elapsedSeconds / 15) * 0.05 : 1;
+      const rewardMultiplier = baseMultiplier * timeGrowth;
+      const pointsEarned = Math.round(CONFIG.SCORE_POINTS * caughtFishes.length * timeBonus * rewardMultiplier);
+      gameState.score += pointsEarned;
+      gameState.money += pointsEarned;
+      gameState.combo++;
+      gameState.caughtFishCount += caughtFishes.length;
+
+      caughtFishes.forEach(fish => catchFish(fish));
+      fishingAction();
+
+      updateUI();
+      hitSound.play();
+
+      increaseDifficulty();
+    } else {
+      // 錯誤：紅色提示 + 原地抖動
+      input.classList.add('input-error');
+      input.style.animation = "none";
+      setTimeout(() => {
+        input.style.animation = "shake 0.3s";
+      }, 10);
+      
+      // 300ms 後清空
+      setTimeout(() => {
+        gameState.typed = "";
+        input.classList.remove('input-error');
+        input.style.animation = "none";
+        updateUI();
+      }, 300);
+    }
+
+    return;
   } else if (e.key.length === 1) {
     gameState.typed += e.key;
   }
 
   updateUI();
-
-  // 檢查是否有魚被擊中
-  const caughtFishes = [];
-
-  document.querySelectorAll(".fish").forEach(fish => {
-    if (gameState.typed === fish.dataset.word) {
-      caughtFishes.push(fish);
-    }
-  });
-
-  // 成功擊中魚
-  if (caughtFishes.length > 0) {
-    gameState.typed = "";
-    const timeBonus = gameState.mode === 'timed' ? 1 + Math.floor(gameState.timeLeft / 10) : 1;
-    const baseMultiplier = currentDifficulty?.rewardMultiplier || 1;
-    const timeGrowth = gameState.mode === 'infinite' ? 1 + Math.floor(gameState.elapsedSeconds / 15) * 0.05 : 1;
-    const rewardMultiplier = baseMultiplier * timeGrowth;
-    const pointsEarned = Math.round(CONFIG.SCORE_POINTS * caughtFishes.length * timeBonus * rewardMultiplier);
-    gameState.score += pointsEarned;
-    gameState.money += pointsEarned;
-    gameState.combo++;
-    gameState.caughtFishCount += caughtFishes.length; // 累計釣到的魚數
-
-    caughtFishes.forEach(fish => catchFish(fish));
-    fishingAction();
-
-    updateUI();
-    hitSound.play();
-
-    // 自動提升難度
-    increaseDifficulty();
-  }
 });
+
+/**
+ * 抖動動畫 CSS
+ */
+const styleSheet = document.createElement("style");
+styleSheet.textContent = `
+  @keyframes shake {
+    0%, 100% { transform: scale(1); }
+    25% { transform: scale(0.97); }
+    50% { transform: scale(1.03); }
+    75% { transform: scale(0.97); }
+  }
+  #input.input-error {
+    color: #ff4d4f;
+  }
+`;
+document.head.appendChild(styleSheet);
 
 /**
  * 將魚拉向魚夫
@@ -1195,6 +1313,7 @@ function buyItem(itemId) {
 
 // 初始化背包與裝備
 ensureDefaultInventory();
+resetPersistentGameData();
 
 // 監聽外部點擊關閉商店
 window.addEventListener('click', (e) => {
