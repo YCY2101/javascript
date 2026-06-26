@@ -323,9 +323,28 @@ function selectLeaderboardDifficulty(label) {
 }
 
 function formatDuration(seconds) {
-  const mins = Math.floor(seconds / 60);
-  const secs = seconds % 60;
+  const safeSeconds = Number.isFinite(Number(seconds)) ? Number(seconds) : 0;
+  const mins = Math.floor(safeSeconds / 60);
+  const secs = safeSeconds % 60;
   return `${mins}:${secs.toString().padStart(2, '0')}`;
+}
+
+function getLeaderboardTimeDisplay(player) {
+  const isInfiniteMode = player.mode === 'infinite' || player.mode === '無限' || player.difficulty === '無限';
+
+  if (isInfiniteMode) {
+    return formatDuration(player.duration ?? 0);
+  }
+
+  if (player.finishedAt) {
+    return formatDate(player.finishedAt);
+  }
+
+  if (player.timestamp) {
+    return formatDate(player.timestamp);
+  }
+
+  return '-';
 }
 
 function formatDate(value) {
@@ -376,13 +395,7 @@ function renderLeaderboardPage(page = 1) {
   pageItems.forEach((player, index) => {
     const row = document.createElement('tr');
     const globalIndex = startIndex + index;
-    const timeCell = player.mode === 'infinite'
-      ? formatDuration(player.duration || 0)
-      : player.finishedAt
-        ? formatDate(player.finishedAt)
-        : player.timestamp
-          ? formatDate(player.timestamp)
-          : '-';
+    const timeCell = getLeaderboardTimeDisplay(player);
 
     const isOwnEntry = currentUser && player.ownerId === currentUser.id;
     const deleteBtn = isOwnEntry
