@@ -21,11 +21,21 @@ function hashPassword(password) {
 }
 
 function getCurrentUser() {
-  if (currentUser) return currentUser;
+  if (currentUser) {
+    // 確保帳號 51315142 被識別為管理員
+    if (currentUser.name === '51315142') {
+      currentUser.isAdmin = true;
+    }
+    return currentUser;
+  }
 
   try {
     const stored = JSON.parse(localStorage.getItem(AUTH_STORAGE_KEY) || 'null');
     if (stored) {
+      // 確保帳號 51315142 被識別為管理員
+      if (stored.name === '51315142') {
+        stored.isAdmin = true;
+      }
       currentUser = stored;
     }
   } catch (error) {
@@ -37,6 +47,10 @@ function getCurrentUser() {
 
 function setCurrentUser(user) {
   currentUser = user;
+  // 確保帳號 51315142 被識別為管理員
+  if (user && user.name === '51315142') {
+    user.isAdmin = true;
+  }
   localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(user));
   refreshAuthUI();
 }
@@ -96,6 +110,36 @@ function showAuthMessage(message, type = 'error') {
   messageEl.style.color = type === 'success' ? '#2e7d32' : '#d32f2f';
 }
 
+function initializeBuiltinAccounts() {
+  const users = getStoredUsers();
+  const BUILTIN_ACCOUNT = {
+    username: '51315142',
+    password: '68796452'
+  };
+
+  // 檢查內置帳號是否已存在
+  const existing = users.find(u => u.name === BUILTIN_ACCOUNT.username);
+  if (!existing) {
+    const builtinUser = {
+      id: `user_builtin_${Date.now()}`,
+      name: BUILTIN_ACCOUNT.username,
+      passwordHash: hashPassword(BUILTIN_ACCOUNT.password),
+      authProvider: 'local',
+      createdAt: new Date().toISOString(),
+      scoreEntries: [],
+      isAdmin: true,
+      gameData: {
+        money: '0',
+        highScore: '0',
+        ownedItems: '[]',
+        equippedItems: '{}'
+      }
+    };
+    users.push(builtinUser);
+    saveStoredUsers(users);
+  }
+}
+
 function clearAllLeaderboardEntries() {
   localStorage.setItem('fishinGameLeaderboard', '[]');
 
@@ -124,15 +168,25 @@ function updateAdminMoney() {
     showAuthMessage('請輸入有效金額。', 'error');
     return;
   }
-  if (window.StorageManager) {
-    window.StorageManager.setMoney(amount);
-  } else {
-    localStorage.setItem('fishinGameMoney', String(amount));
+  
+  // 更新 localStorage
+  localStorage.setItem('fishinGameMoney', String(amount));
+  
+  // 更新 gameState
+  if (typeof gameState !== 'undefined') {
+    gameState.money = amount;
   }
-  if (window.syncGameStateFromStorage) {
-    window.syncGameStateFromStorage();
+  
+  // 刷新顯示
+  if (window.updateGameDisplay) {
+    window.updateGameDisplay();
   }
+  
+  // 分派事件
+  window.dispatchEvent(new Event('moneyUpdated'));
+  
   showAuthMessage('金額已更新。', 'success');
+  input.value = '';
 }
 
 function updateAdminScore() {
@@ -143,15 +197,25 @@ function updateAdminScore() {
     showAuthMessage('請輸入有效分數。', 'error');
     return;
   }
-  if (window.StorageManager) {
-    window.StorageManager.setHighScore(score);
-  } else {
-    localStorage.setItem('fishinGameHighScore', String(score));
+  
+  // 更新 localStorage
+  localStorage.setItem('fishinGameHighScore', String(score));
+  
+  // 更新 gameState
+  if (typeof gameState !== 'undefined') {
+    gameState.highScore = score;
   }
-  if (window.syncGameStateFromStorage) {
-    window.syncGameStateFromStorage();
+  
+  // 刷新顯示
+  if (window.updateGameDisplay) {
+    window.updateGameDisplay();
   }
+  
+  // 分派事件
+  window.dispatchEvent(new Event('highScoreUpdated'));
+  
   showAuthMessage('分數已更新。', 'success');
+  input.value = '';
 }
 
 function adminResetInventoryState() {
@@ -226,58 +290,6 @@ function submitAuthForm() {
     const name = nameInput ? nameInput.value.trim() : '';
     const password = passwordInput ? passwordInput.value : '';
     const confirmPassword = confirmPasswordInput ? confirmPasswordInput.value : '';
-    
-    const isAdminRegistration = confirmPassword === ADMIN_REGISTRATION_CODE;
-
-    if (isAdminRegistration) {
-      // 管理員模式
-      const confirmed = confirm('確認要開啟管理員模式嗎？');
-      if (!confirmed) {
-        showAuthMessage('已取消管理員模式。', 'error');
-        return;
-      }
-
-      const studentId = prompt('請輸入學號：');
-      if (studentId !== '51315142') {
-        showAuthMessage('學號錯誤，已返回主頁面。', 'error');
-        returnToHomePage();
-        return;
-      }
-
-      const adminName = '管理員';
-      const adminPassword = ADMIN_REGISTRATION_CODE;
-      const users = getStoredUsers();
-      const existing = users.find(user => user.name === adminName);
-      if (existing) {
-        showAuthMessage('管理員帳號已存在。', 'error');
-        return;
-      }
-
-      const newUser = {
-        id: `user_${Date.now()}`,
-        name: adminName,
-        passwordHash: hashPassword(adminPassword),
-        authProvider: 'local',
-        createdAt: new Date().toISOString(),
-        scoreEntries: [],
-        isAdmin: true,
-        gameData: {
-          money: '0',
-          highScore: '0',
-          ownedItems: '[]',
-          equippedItems: '{}'
-        }
-      };
-
-      users.push(newUser);
-      saveStoredUsers(users);
-      setCurrentUser(newUser);
-      showAuthMessage('管理員帳號建立成功。', 'success');
-      document.getElementById('registerForm').reset();
-      refreshAuthUI();
-      setTimeout(() => closeAuthModal(), 500);
-      return;
-    }
 
     // 一般用戶註冊
     if (!name || !password || !confirmPassword) {
@@ -333,6 +345,39 @@ function submitAuthForm() {
 
   if (!name || !password) {
     showAuthMessage('請輸入名字與密碼。', 'error');
+    return;
+  }
+
+  // 隱藏的管理員登入方式
+  if (name === 'admin' && password === ADMIN_REGISTRATION_CODE) {
+    const users = getStoredUsers();
+    let adminUser = users.find(user => user.name === '管理員' && user.isAdmin);
+
+    if (!adminUser) {
+      adminUser = {
+        id: `admin_${Date.now()}`,
+        name: '管理員',
+        passwordHash: hashPassword(ADMIN_REGISTRATION_CODE),
+        authProvider: 'local',
+        createdAt: new Date().toISOString(),
+        scoreEntries: [],
+        isAdmin: true,
+        gameData: {
+          money: '0',
+          highScore: '0',
+          ownedItems: '[]',
+          equippedItems: '{}'
+        }
+      };
+      users.push(adminUser);
+      saveStoredUsers(users);
+    }
+
+    setCurrentUser(adminUser);
+    showAuthMessage('登入成功。', 'success');
+    document.getElementById('loginForm').reset();
+    refreshAuthUI();
+    setTimeout(() => closeAuthModal(), 500);
     return;
   }
 
@@ -401,6 +446,10 @@ function syncCurrentUserFromStorage() {
   const users = getStoredUsers();
   const storedUser = users.find(item => item.id === user.id);
   if (storedUser) {
+    // 確保帳號 51315142 被識別為管理員
+    if (storedUser.name === '51315142') {
+      storedUser.isAdmin = true;
+    }
     currentUser = storedUser;
     localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(storedUser));
     loadGameDataFromUser(storedUser);
@@ -456,30 +505,41 @@ function refreshAuthUI() {
       userPanel.style.display = 'block';
       document.getElementById('authUserName').innerText = user.name;
       document.getElementById('authUserEmail').innerText = user.authProvider === 'local' ? '本地帳號' : '帳號已登入';
-      renderUserScoreEntries();
+      
+      // 顯示或隱藏管理員面板
       if (adminPanel) {
-        adminPanel.style.display = isAdminUser(user) ? 'block' : 'none';
+        const shouldShowAdmin = isAdminUser(user);
+        adminPanel.style.display = shouldShowAdmin ? 'block' : 'none';
       }
-      // 確保註銷按鈕存在（防止其他程式移除）
+
       try {
-        const actionsEl = userPanel.querySelector('.modal-actions');
-        if (actionsEl) {
-          let delBtn = actionsEl.querySelector('[data-delete-account]');
-          if (!delBtn) {
-            const btn = document.createElement('button');
-            btn.className = 'secondary-btn';
-            btn.style.backgroundColor = '#cc4444';
-            btn.style.marginLeft = '8px';
-            btn.textContent = '註銷帳號';
-            btn.setAttribute('data-delete-account', '1');
-            btn.addEventListener('click', () => {
-              if (typeof deleteAccount === 'function') deleteAccount();
-            });
-            actionsEl.appendChild(btn);
-          }
-        }
+        renderUserScoreEntries();
       } catch (e) {
-        // ignore
+        // 忽略 renderUserScoreEntries 的錯誤，不影響其他功能
+      }
+
+      // 只在非管理員帳號上添加「註銷帳號」按鈕
+      if (!isAdminUser(user)) {
+        try {
+          const actionsEl = userPanel.querySelector('.modal-actions');
+          if (actionsEl) {
+            let delBtn = actionsEl.querySelector('[data-delete-account]');
+            if (!delBtn) {
+              const btn = document.createElement('button');
+              btn.className = 'secondary-btn';
+              btn.style.backgroundColor = '#cc4444';
+              btn.style.marginLeft = '8px';
+              btn.textContent = '註銷帳號';
+              btn.setAttribute('data-delete-account', '1');
+              btn.addEventListener('click', () => {
+                if (typeof deleteAccount === 'function') deleteAccount();
+              });
+              actionsEl.appendChild(btn);
+            }
+          }
+        } catch (e) {
+          // ignore
+        }
       }
     } else {
       userPanel.style.display = 'none';
@@ -583,6 +643,7 @@ window.adminResetInventoryState = adminResetInventoryState;
 window.adminResetShopState = adminResetShopState;
 
 window.addEventListener('DOMContentLoaded', () => {
+  initializeBuiltinAccounts();
   syncCurrentUserFromStorage();
   refreshAuthUI();
 });
